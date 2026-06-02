@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Registre des Tests — Laboratoire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.2/js/msal-browser.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117; --bg2:#161a24; --bg3:#1e2333; --bg4:#252b3b;
+  --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.12);
+  --text:#eef0f7; --text2:#8b93ad; --text3:#555e78;
+  --accent:#4f7bff; --accent-dim:rgba(79,123,255,.12); --accent-glow:rgba(79,123,255,.25);
+  --success:#22d3a0; --success-dim:rgba(34,211,160,.12);
+  --warning:#f59e0b; --warning-dim:rgba(245,158,11,.12);
+  --danger:#f43f5e; --danger-dim:rgba(244,63,94,.12);
+  --info:#38bdf8; --info-dim:rgba(56,189,248,.12);
+  --purple:#a78bfa; --purple-dim:rgba(167,139,250,.12);
+  --radius:10px; --radius-lg:14px; --shadow:0 4px 24px rgba(0,0,0,.4);
+  --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px;}
+.app{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+
+/* HEADER */
+.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2.5rem;gap:1rem;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.logo-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent-glow);}
+.logo h1{font-size:22px;font-weight:600;letter-spacing:-.4px;}
+.header-sub{font-size:13px;color:var(--text3);padding-left:18px;}
+.header-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);border-radius:var(--radius);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);transition:all .18s;white-space:nowrap;}
+.btn:hover{background:var(--bg4);border-color:rgba(255,255,255,.18);}
+.btn:active{transform:scale(.98);}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff;box-shadow:0 2px 12px var(--accent-glow);}
+.btn.primary:hover{background:#6b91ff;}
+.btn.sm{padding:6px 12px;font-size:12px;}
+.btn.xs{padding:4px 10px;font-size:11px;}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--text2);}
+.btn.ghost:hover{background:var(--bg3);color:var(--text);}
+.btn.danger-ghost{background:transparent;border-color:transparent;color:var(--danger);}
+.btn.danger-ghost:hover{background:var(--danger-dim);}
+.btn.success{background:var(--success);border-color:transparent;color:#0a2e22;}
+.btn.success:hover{opacity:.88;}
+.btn.purple{background:var(--purple);border-color:transparent;color:#160d30;}
+.btn.purple:hover{opacity:.88;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;transition:border-color .2s;}
+.stat:hover{border-color:var(--border2);}
+.stat-icon{font-size:22px;margin-bottom:10px;}
+.stat-value{font-size:28px;font-weight:600;letter-spacing:-.5px;line-height:1;margin-bottom:4px;}
+.stat-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.stat.accent .stat-value{color:var(--accent);}
+.stat.success .stat-value{color:var(--success);}
+.stat.warning .stat-value{color:var(--warning);}
+.stat.info .stat-value{color:var(--info);}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.search-wrap{flex:1;min-width:180px;position:relative;}
+.search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none;}
+.search-wrap input{width:100%;padding:9px 12px 9px 38px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;transition:border-color .18s;}
+.search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.search-wrap input::placeholder{color:var(--text3);}
+.filter-select{padding:9px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer;}
+.filter-select:focus{outline:none;border-color:var(--accent);}
+.filter-select option{background:var(--bg3);}
+
+/* CARDS */
+.test-list{display:flex;flex-direction:column;gap:8px;}
+.test-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color .2s,box-shadow .2s;}
+.test-card:hover{border-color:var(--border2);}
+.test-card.expanded{border-color:rgba(79,123,255,.3);box-shadow:0 0 0 1px rgba(79,123,255,.1);}
+.test-card.editing{border-color:rgba(34,211,160,.3);box-shadow:0 0 0 1px rgba(34,211,160,.08);}
+
+.card-head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;}
+.card-head:hover{background:rgba(255,255,255,.02);}
+.card-num{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:28px;}
+.card-info{flex:1;min-width:0;}
+.card-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-sub{font-size:12px;color:var(--text3);margin-top:1px;}
+.card-chips{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.chip-type{background:var(--bg4);color:var(--text2);}
+.chip-files{background:var(--bg4);color:var(--text2);}
+.chip-pending{background:var(--warning-dim);color:var(--warning);}
+.chip-progress{background:var(--info-dim);color:var(--info);}
+.chip-done{background:var(--success-dim);color:var(--success);}
+.chip-fail{background:var(--danger-dim);color:var(--danger);}
+.chip-rnd{background:var(--purple-dim);color:var(--purple);}
+.chip-cert-count{background:var(--accent-dim);color:var(--accent);}
+.chevron{font-size:16px;color:var(--text3);transition:transform .25s;flex-shrink:0;}
+.expanded .chevron,.editing .chevron{transform:rotate(180deg);}
+
+/* CARD BODY */
+.card-body{display:none;border-top:1px solid var(--border);}
+.card-body.open{display:block;}
+.card-body-inner{padding:18px;}
+
+/* VIEW MODE */
+.info-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.info-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.info-block-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.info-block-val{font-size:13px;font-weight:500;}
+.section{margin-bottom:18px;}
+.section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.text-block{font-size:13px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;white-space:pre-wrap;line-height:1.65;}
+.deliverable-list{display:flex;flex-direction:column;gap:6px;}
+.deliverable-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;}
+.deliverable-item i{color:var(--success);font-size:15px;flex-shrink:0;}
+
+/* CERT DISPLAY */
+.cert-chips-view{display:flex;flex-wrap:wrap;gap:6px;}
+.cert-chip-norm{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--info-dim);color:var(--info);border:1px solid rgba(56,189,248,.2);}
+.cert-chip-cert{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,123,255,.2);}
+.cert-chip-rnd{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:99px;background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,.2);}
+.cert-none{font-size:12px;color:var(--text3);font-style:italic;padding:4px 0;}
+
+/* CERT CHECKBOXES IN EDIT */
+.cert-checks{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.cert-check-item{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;cursor:pointer;transition:border-color .15s;}
+.cert-check-item:hover{border-color:var(--border2);}
+.cert-check-item input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;}
+.cert-check-item .cc-label{flex:1;cursor:pointer;font-size:13px;line-height:1.4;}
+.cert-check-item .cc-label small{color:var(--text3);font-size:11px;}
+.cert-kind-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;}
+.ck-norm{background:var(--info-dim);color:var(--info);}
+.ck-cert{background:var(--accent-dim);color:var(--accent);}
+
+/* RND TOGGLE */
+.rnd-toggle{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;cursor:pointer;transition:border-color .15s;margin-bottom:6px;}
+.rnd-toggle:has(input:checked){border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.05);}
+.rnd-toggle:hover{border-color:rgba(167,139,250,.3);}
+.rnd-toggle input{width:16px;height:16px;cursor:pointer;accent-color:var(--purple);flex-shrink:0;}
+.rnd-toggle-label{flex:1;cursor:pointer;}
+.rnd-toggle-label strong{font-weight:600;color:var(--purple);font-size:13px;}
+.rnd-toggle-label small{display:block;font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* ATTACHMENTS */
+.att-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.att-item{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:9px 13px;}
+.att-icon{font-size:18px;flex-shrink:0;}
+.att-info{flex:1;min-width:0;}
+.att-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.att-meta{font-size:11px;color:var(--text3);margin-top:1px;}
+.att-dl{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;padding:2px 4px;border-radius:6px;transition:color .15s,background .15s;}
+.att-dl:hover{color:var(--accent);background:var(--accent-dim);}
+.att-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;padding:2px 4px;border-radius:6px;transition:color .15s,background .15s;}
+.att-del:hover{color:var(--danger);background:var(--danger-dim);}
+.upload-zone{border:1px dashed rgba(79,123,255,.35);border-radius:var(--radius);padding:14px;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;transition:all .18s;background:transparent;}
+.upload-zone:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+
+/* CARD FOOTER */
+.card-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:rgba(0,0,0,.15);}
+
+/* INLINE EDIT MODE */
+.edit-banner{display:flex;align-items:center;gap:8px;padding:10px 18px;background:rgba(34,211,160,.06);border-bottom:1px solid rgba(34,211,160,.15);font-size:12px;color:var(--success);}
+.edit-banner i{font-size:15px;}
+.edit-form{padding:18px;}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.edit-grid .full{grid-column:1/-1;}
+.efield{display:flex;flex-direction:column;gap:5px;}
+.efield label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+.efield input,.efield select,.efield textarea{padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;transition:border-color .18s,box-shadow .18s;width:100%;}
+.efield input[type=checkbox]{width:16px;height:16px;padding:0;flex-shrink:0;accent-color:var(--purple);cursor:pointer;}
+.efield input:focus,.efield select:focus,.efield textarea:focus{outline:none;border-color:var(--success);box-shadow:0 0 0 3px rgba(34,211,160,.1);}
+.efield input::placeholder,.efield textarea::placeholder{color:var(--text3);}
+.efield textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.efield select option{background:var(--bg3);}
+.edit-sep{height:1px;background:var(--border);margin:16px 0;}
+.deliv-row{display:flex;gap:8px;margin-bottom:8px;}
+.deliv-row input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;}
+.deliv-row input:focus{outline:none;border-color:var(--success);box-shadow:0 0 0 3px rgba(34,211,160,.1);}
+.deliv-row input::placeholder{color:var(--text3);}
+.dchip{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;margin-bottom:6px;font-size:13px;}
+.dchip span{flex:1;}
+.dchip button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0 2px;}
+.dchip button:hover{color:var(--danger);}
+.edit-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--border);background:rgba(0,0,0,.15);}
+
+/* EMPTY */
+.empty{text-align:center;padding:4rem 2rem;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.4;}
+.empty p{font-size:15px;color:var(--text2);margin-bottom:8px;}
+.empty small{font-size:13px;}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:1rem;}
+.overlay.hidden{display:none;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:560px;max-width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);animation:slideUp .22s ease;}
+.modal.wide{width:680px;}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid var(--border);}
+.modal-header h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;line-height:1;padding:4px;border-radius:6px;transition:color .15s,background .15s;}
+.modal-close:hover{color:var(--text);background:var(--bg4);}
+.modal-body{padding:20px 22px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--border);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid .full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--text2);font-weight:500;letter-spacing:.02em;}
+.field input,.field select,.field textarea{padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;transition:border-color .18s,box-shadow .18s;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.field input::placeholder,.field textarea::placeholder{color:var(--text3);}
+.field textarea{resize:vertical;min-height:80px;line-height:1.6;}
+.field select option{background:var(--bg3);}
+.sep{height:1px;background:var(--border);margin:18px 0;}
+.deliv-add{display:flex;gap:8px;}
+.deliv-add input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;}
+.deliv-add input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.deliv-add input::placeholder{color:var(--text3);}
+.d-chip{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;margin-bottom:6px;font-size:13px;}
+.d-chip span{flex:1;}
+.d-chip button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0 2px;}
+.d-chip button:hover{color:var(--danger);}
+
+/* CERT MODAL */
+.cert-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.cert-item{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:border-color .15s;}
+.cert-item:hover{border-color:var(--border2);}
+.cert-item-info{flex:1;min-width:0;}
+.cert-item-name{font-size:13px;font-weight:600;}
+.cert-item-desc{font-size:11px;color:var(--text3);margin-top:2px;}
+.cert-item-stats{font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap;text-align:right;}
+.cert-item-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:2px 4px;border-radius:6px;transition:color .15s,background .15s;flex-shrink:0;}
+.cert-item-del:hover{color:var(--danger);background:var(--danger-dim);}
+.cert-add-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;}
+.cert-add-box h3{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.cert-add-row{display:grid;grid-template-columns:130px 1fr;gap:10px;margin-bottom:10px;}
+.cert-add-row input,.cert-add-row select{padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;width:100%;}
+.cert-add-row input:focus,.cert-add-row select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.cert-add-row input::placeholder{color:var(--text3);}
+.cert-add-row select option{background:var(--bg3);}
+.cert-add-desc{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;margin-bottom:10px;}
+.cert-add-desc:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.cert-add-desc::placeholder{color:var(--text3);}
+.cert-empty-msg{text-align:center;padding:24px;color:var(--text3);}
+.cert-empty-msg i{font-size:32px;display:block;margin-bottom:8px;opacity:.3;}
+.cert-empty-msg p{font-size:13px;}
+.cert-divider{height:1px;background:var(--border);margin:16px 0;}
+.cert-stats-bar{display:flex;gap:16px;margin-bottom:16px;padding:12px 16px;background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.12);border-radius:var(--radius);}
+.cert-stat{text-align:center;}
+.cert-stat-val{font-size:20px;font-weight:600;color:var(--purple);}
+.cert-stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;color:var(--text);box-shadow:var(--shadow);z-index:999;display:flex;align-items:center;gap:10px;animation:toastIn .22s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}}
+.toast.success i{color:var(--success);}
+.toast.info i{color:var(--info);}
+.toast.danger i{color:var(--danger);}
+
+.test-card{animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+@media(max-width:640px){
+  .stats{grid-template-columns:1fr 1fr;}
+  .info-row{grid-template-columns:1fr 1fr;}
+  .card-chips .chip-type{display:none;}
+  .form-grid,.edit-grid,.cert-add-row{grid-template-columns:1fr;}
+  .form-grid .full,.edit-grid .full{grid-column:1;}
+  .header-actions{gap:6px;}
+  .cert-stats-bar{flex-wrap:wrap;}
+}
+
+/* AUTH BAR */
+.auth-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;font-size:12px;color:var(--text2);}
+.auth-bar .auth-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.auth-bar .auth-dot.green{background:var(--success);box-shadow:0 0 6px var(--success);}
+.auth-bar .auth-dot.orange{background:var(--warning);}
+.auth-bar .auth-dot.red{background:var(--danger);}
+.auth-bar .auth-user{font-weight:500;color:var(--text);}
+.auth-bar .auth-spacer{flex:1;}
+.sync-spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:4px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="auth-bar" id="auth-bar">
+    <div class="auth-dot orange" id="auth-dot"></div>
+    <span id="auth-status">Non connecté</span>
+    <span class="auth-spacer"></span>
+    <span id="auth-sync-msg"></span>
+    <button class="btn xs" id="auth-btn" onclick="authAction()"><i class="ti ti-login"></i> Se connecter</button>
+  </div>
+  <div class="header">
+    <div>
+      <div class="logo"><div class="logo-dot"></div><h1>Registre des Tests</h1></div>
+      <div class="header-sub">Gestion &amp; suivi du programme de tests laboratoire</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
+      <button class="btn" onclick="exportPDF()"><i class="ti ti-download"></i> Export PDF</button>
+      <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat accent"><div class="stat-icon"><i class="ti ti-flask-2" style="color:var(--accent)"></i></div><div class="stat-value" id="s-total">0</div><div class="stat-label">Tests planifiés</div></div>
+    <div class="stat warning"><div class="stat-icon"><i class="ti ti-calendar-week" style="color:var(--warning)"></i></div><div class="stat-value" id="s-days">0</div><div class="stat-label">Jours prévus</div></div>
+    <div class="stat success"><div class="stat-icon"><i class="ti ti-checklist" style="color:var(--success)"></i></div><div class="stat-value" id="s-deliv">0</div><div class="stat-label">Livrables</div></div>
+    <div class="stat info"><div class="stat-icon"><i class="ti ti-paperclip" style="color:var(--info)"></i></div><div class="stat-value" id="s-files">0</div><div class="stat-label">Pièces jointes</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" id="search" placeholder="Rechercher un test…" oninput="render()"/></div>
+    <select class="filter-select" id="filter-type" onchange="render()">
+      <option value="">Tous les types</option>
+      <option>Caractérisation électrique</option><option>Test thermique</option>
+      <option>Test de vieillissement</option><option>Test de protection / fault</option>
+      <option>Test de communication</option><option>Test mécanique</option>
+      <option>Validation système</option><option>Autre</option>
+    </select>
+    <select class="filter-select" id="filter-status" onchange="render()">
+      <option value="">Tous les statuts</option>
+      <option value="pending">En attente</option><option value="progress">En cours</option>
+      <option value="done">Validé</option><option value="fail">Échec</option>
+    </select>
+    <select class="filter-select" id="filter-cert" onchange="render()">
+      <option value="">Toutes les certifs</option>
+      <option value="rnd">R&amp;D Interne</option>
+    </select>
+  </div>
+
+  <div class="test-list" id="test-list"></div>
+</div>
+
+<!-- MODAL NOUVEAU TEST -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2><i class="ti ti-flask" style="color:var(--accent);font-size:18px;"></i> Nouveau test</h2>
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field full"><label>Nom du test *</label><input type="text" id="f-name" placeholder="Ex : Validation Rds(on) à 25°C — 48V / 300A"/></div>
+        <div class="field"><label>Type de test</label>
+          <select id="f-type"><option value="">— Sélectionner —</option><option>Caractérisation électrique</option><option>Test thermique</option><option>Test de vieillissement</option><option>Test de protection / fault</option><option>Test de communication</option><option>Test mécanique</option><option>Validation système</option><option>Autre</option></select>
+        </div>
+        <div class="field"><label>Statut</label>
+          <select id="f-status"><option value="pending">En attente</option><option value="progress">En cours</option><option value="done">Validé</option><option value="fail">Échec</option></select>
+        </div>
+        <div class="field"><label>Date de début prévue</label><input type="date" id="f-date"/></div>
+        <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend"/></div>
+        <div class="field full"><label>Nombre de jours prévus</label><input type="number" id="f-days" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="field full"><label>Matériel / équipement requis</label><textarea id="f-material" placeholder="Ex : Oscilloscope Tektronix MSO6, charge électronique 600V/100A…"></textarea></div>
+        <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
+      </div>
+      <div class="sep"></div>
+      <div id="f-cert-section"></div>
+      <div class="sep"></div>
+      <div class="field" style="margin-bottom:0">
+        <label style="margin-bottom:8px;font-size:12px;color:var(--text2);font-weight:500;">Livrables attendus</label>
+        <div class="deliv-add" style="margin-bottom:8px;">
+          <input type="text" id="f-deliv-inp" placeholder="Ex : Rapport de test, courbe Rds(on) vs T°, dataset CSV…" onkeydown="if(event.key==='Enter'){event.preventDefault();addD();}"/>
+          <button class="btn sm" onclick="addD()"><i class="ti ti-plus"></i> Ajouter</button>
+        </div>
+        <div id="f-deliv-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn primary" onclick="saveNew()"><i class="ti ti-check"></i> Créer le test</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CERTIFICATIONS -->
+<div class="overlay hidden" id="cert-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h2><i class="ti ti-certificate" style="color:var(--purple);font-size:18px;"></i> Certifications &amp; Normes</h2>
+      <button class="modal-close" onclick="closeCertModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="cert-stats-section"></div>
+      <div id="cert-list-container"></div>
+      <div class="cert-add-box">
+        <h3><i class="ti ti-plus"></i> Ajouter une entrée</h3>
+        <div class="cert-add-row">
+          <select id="c-kind">
+            <option value="norm">Norme</option>
+            <option value="cert">Certification</option>
+          </select>
+          <input type="text" id="c-name" placeholder="Référence / nom (ex : IEC 62576, AEC-Q200, ISO 16750…)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewCert();}"/>
+        </div>
+        <input type="text" id="c-desc" class="cert-add-desc" placeholder="Description courte (optionnel — ex : Condensateurs EDLC, vibration/choc)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewCert();}"/>
+        <button class="btn primary sm" onclick="saveNewCert()"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tests = [];
+let certifications = [];
+let tempD = [];
+let editingCards = {};
+
+const STATUS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
+const STATUS_CLASS = {pending:'chip-pending',progress:'chip-progress',done:'chip-done',fail:'chip-fail'};
+const TYPE_ICONS = {'Caractérisation électrique':'ti-bolt','Test thermique':'ti-temperature','Test de vieillissement':'ti-clock-hour-4','Test de protection / fault':'ti-shield-check','Test de communication':'ti-antenna','Test mécanique':'ti-tool','Validation système':'ti-circuit-board','Autre':'ti-flask'};
+const TYPE_OPTS = ['Caractérisation électrique','Test thermique','Test de vieillissement','Test de protection / fault','Test de communication','Test mécanique','Validation système','Autre'];
+const CERT_KIND_LABEL = {norm:'Norme', cert:'Certification'};
+
+/* ---- CONFIG SHAREPOINT ---- */
+const SP_CONFIG = {
+  clientId: 'd424f18b-a96a-4e55-85d7-772845190a9f',
+  tenantId: 'f33795d4-4841-48cd-8f18-d618702941d4',
+  useOneDrive: true,
+  folderPath: 'Labo',
+  testsFile: 'lab_tests_v3.json',
+  certsFile: 'lab_certs_v1.json'
+};
+
+let msalInstance = null;
+let currentAccount = null;
+
+function initMsal(){
+  const config = {
+    auth: {
+      clientId: SP_CONFIG.clientId,
+      authority: `https://login.microsoftonline.com/${SP_CONFIG.tenantId}`,
+      redirectUri: window.location.href.split('?')[0].split('#')[0]
+    },
+    cache: { cacheLocation: 'sessionStorage' }
+  };
+  msalInstance = new msal.PublicClientApplication(config);
+  const accounts = msalInstance.getAllAccounts();
+  if(accounts.length > 0){
+    currentAccount = accounts[0];
+    setAuthBar(true, currentAccount.name || currentAccount.username);
+    loadFromSharePoint();
+  } else {
+    setAuthBar(false);
+    loadLocalFallback();
+  }
+}
+
+function setAuthBar(connected, name){
+  const dot = document.getElementById('auth-dot');
+  const status = document.getElementById('auth-status');
+  const btn = document.getElementById('auth-btn');
+  if(connected){
+    dot.className = 'auth-dot green';
+    status.innerHTML = `Connecté — <span class="auth-user">${name}</span>`;
+    btn.innerHTML = '<i class="ti ti-logout"></i> Déconnexion';
+  } else {
+    dot.className = 'auth-dot orange';
+    status.textContent = 'Non connecté — données locales uniquement';
+    btn.innerHTML = '<i class="ti ti-login"></i> Se connecter';
+  }
+}
+
+function setSyncMsg(msg){
+  document.getElementById('auth-sync-msg').innerHTML = msg;
+}
+
+async function authAction(){
+  if(currentAccount){
+    msalInstance.logoutPopup();
+    currentAccount = null;
+    setAuthBar(false);
+    return;
+  }
+  try{
+    const res = await msalInstance.loginPopup({scopes:['Files.ReadWrite']});
+    currentAccount = res.account;
+    setAuthBar(true, currentAccount.name || currentAccount.username);
+    loadFromSharePoint();
+  } catch(e){ toast('Connexion annulée ou échouée.','danger'); }
+}
+
+async function getToken(){
+  if(!currentAccount) return null;
+  try{
+    const res = await msalInstance.acquireTokenSilent({
+      scopes: ['Files.ReadWrite'],
+      account: currentAccount
+    });
+    return res.accessToken;
+  } catch(e){
+    try{
+      const res = await msalInstance.acquireTokenPopup({scopes:['Files.ReadWrite']});
+      return res.accessToken;
+    } catch(e2){ return null; }
+  }
+}
+
+function spUrl(file){
+  return `https://graph.microsoft.com/v1.0/me/drive/root:/${SP_CONFIG.folderPath}/${file}:/content`;
+}
+
+async function loadFromSharePoint(){
+  setSyncMsg('<span class="sync-spinner"></span>Synchronisation…');
+  const token = await getToken();
+  if(!token){ loadLocalFallback(); return; }
+  try{
+    const [rTests, rCerts] = await Promise.all([
+      fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}}),
+      fetch(spUrl(SP_CONFIG.certsFile), {headers:{Authorization:`Bearer ${token}`}})
+    ]);
+    if(rTests.ok) tests = await rTests.json(); else tests = [];
+    if(rCerts.ok) certifications = await rCerts.json(); else certifications = [];
+    setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Synchronisé');
+    setTimeout(()=>setSyncMsg(''), 3000);
+  } catch(e){
+    loadLocalFallback();
+    toast('Erreur de synchronisation SharePoint — données locales chargées.','danger');
+  }
+  updateCertFilter();
+  render();
+}
+
+function loadLocalFallback(){
+  try{const r=localStorage.getItem('lab_tests_v3');if(r)tests=JSON.parse(r);}catch(e){tests=[];}
+  try{const r=localStorage.getItem('lab_certs_v1');if(r)certifications=JSON.parse(r);}catch(e){certifications=[];}
+  updateCertFilter();
+  render();
+}
+
+async function saveToSharePoint(file, data){
+  const token = await getToken();
+  if(!token){ return false; }
+  try{
+    const res = await fetch(spUrl(file), {
+      method: 'PUT',
+      headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.ok;
+  } catch(e){ return false; }
+}
+
+/* ---- PERSISTENCE ---- */
+function load(){
+  initMsal();
+}
+
+async function persist(){
+  // Always save locally as fallback
+  try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
+  if(currentAccount){
+    setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
+    const ok = await saveToSharePoint(SP_CONFIG.testsFile, tests);
+    setSyncMsg(ok
+      ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
+      : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+    setTimeout(()=>setSyncMsg(''), 3000);
+  }
+  render();
+}
+
+async function persistCerts(){
+  try{localStorage.setItem('lab_certs_v1',JSON.stringify(certifications));}catch(e){}
+  try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
+  if(currentAccount){
+    setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
+    const [ok1, ok2] = await Promise.all([
+      saveToSharePoint(SP_CONFIG.certsFile, certifications),
+      saveToSharePoint(SP_CONFIG.testsFile, tests)
+    ]);
+    setSyncMsg((ok1&&ok2)
+      ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
+      : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+    setTimeout(()=>setSyncMsg(''), 3000);
+  }
+  updateCertFilter();
+  render();
+}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(b){if(!b)return '';if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return (b/1048576).toFixed(1)+'MB';}
+
+/* ---- CERT FILTER ---- */
+function updateCertFilter(){
+  const sel=document.getElementById('filter-cert');if(!sel)return;
+  const val=sel.value;
+  sel.innerHTML='<option value="">Toutes les certifs</option><option value="rnd">R&D Interne</option>';
+  certifications.forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c.id;o.textContent=c.name;
+    sel.appendChild(o);
+  });
+  sel.value=val;
+}
+
+/* ---- FILTER & RENDER ---- */
+function filtered(){
+  const q=(document.getElementById('search')?.value||'').toLowerCase();
+  const ft=document.getElementById('filter-type')?.value||'';
+  const fs=document.getElementById('filter-status')?.value||'';
+  const fc=document.getElementById('filter-cert')?.value||'';
+  return tests.filter(t=>{
+    if(ft&&t.type!==ft)return false;
+    if(fs&&t.status!==fs)return false;
+    if(fc==='rnd'&&!t.isRnD)return false;
+    if(fc&&fc!=='rnd'&&!(t.certIds||[]).includes(fc))return false;
+    if(q&&!t.name.toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q)&&!(t.type||'').toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+
+function render(){
+  let totalDays=0,totalDeliv=0,totalFiles=0;
+  tests.forEach(t=>{totalDays+=parseFloat(t.days||0);totalDeliv+=(t.deliverables||[]).length;totalFiles+=(t.attachments||[]).length;});
+  document.getElementById('s-total').textContent=tests.length;
+  document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
+  document.getElementById('s-deliv').textContent=totalDeliv;
+  document.getElementById('s-files').textContent=totalFiles;
+
+  const list=document.getElementById('test-list');
+  const data=filtered();
+  if(!data.length&&!tests.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon"><i class="ti ti-flask-2"></i></div><p>Aucun test planifié pour l'instant.</p><small>Cliquez sur « Nouveau test » pour commencer.</small></div>`;
+    return;
+  }
+  if(!data.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon"><i class="ti ti-search"></i></div><p>Aucun résultat.</p><small>Modifiez vos filtres ou votre recherche.</small></div>`;
+    return;
+  }
+
+  const openIds=new Set([...document.querySelectorAll('.card-body.open')].map(el=>el.id.replace('body-','')));
+
+  list.innerHTML=data.map((t,i)=>{
+    const icon=TYPE_ICONS[t.type]||'ti-flask';
+    const atts=t.attachments||[];
+    const delivs=t.deliverables||[];
+    const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
+    const isOpen=openIds.has(t.id)||editingCards[t.id];
+    const isEditing=!!editingCards[t.id];
+    const edDelivs=isEditing?editingCards[t.id].deliverables:delivs;
+
+    // Date range subtitle
+    let dateSub='';
+    if(t.dateStart&&t.dateEnd) dateSub=`${t.dateStart} → ${t.dateEnd}`;
+    else if(t.dateStart) dateSub=`Début : ${t.dateStart}`;
+    if(dateSub&&t.days) dateSub+=` · ${t.days} j`;
+    else if(t.days&&!dateSub) dateSub=`${t.days} jour${parseFloat(t.days)>1?'s':''}`;
+
+    return `<div class="test-card${isOpen?' expanded':''}${isEditing?' editing':''}" id="card-${t.id}">
+      <div class="card-head" onclick="toggle('${t.id}')">
+        <span class="card-num">${String(i+1).padStart(2,'0')}</span>
+        <div class="card-info">
+          <div class="card-name"><i class="ti ${icon}" style="font-size:14px;vertical-align:-2px;margin-right:6px;color:var(--accent);opacity:.8;"></i>${esc(t.name)}</div>
+          ${dateSub?`<div class="card-sub">${dateSub}</div>`:''}
+        </div>
+        <div class="card-chips">
+          ${t.type?`<span class="chip chip-type">${esc(t.type)}</span>`:''}
+          ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
+          ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
+          ${atts.length?`<span class="chip chip-files"><i class="ti ti-paperclip" style="font-size:12px;"></i>${atts.length}</span>`:''}
+          ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
+          <span class="chip ${STATUS_CLASS[t.status]}">${STATUS[t.status]}</span>
+          ${isEditing?`<span class="chip" style="background:rgba(34,211,160,.15);color:var(--success);"><i class="ti ti-pencil" style="font-size:11px;"></i> Édition</span>`:''}
+        </div>
+        <i class="ti ti-chevron-down chevron"></i>
+      </div>
+      <div class="card-body${isOpen?' open':''}" id="body-${t.id}">
+        ${isEditing ? renderEditForm(t, edDelivs) : renderViewBody(t)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---- VIEW BODY ---- */
+function renderViewBody(t){
+  const atts=t.attachments||[];
+  const delivs=t.deliverables||[];
+  const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
+  const certHtml = [
+    t.isRnD ? `<span class="cert-chip-rnd"><i class="ti ti-microscope" style="font-size:12px;"></i> Test interne R&amp;D</span>` : '',
+    ...linkedCerts.map(c=>`<span class="${c.kind==='norm'?'cert-chip-norm':'cert-chip-cert'}"><i class="ti ${c.kind==='norm'?'ti-book-2':'ti-award'}" style="font-size:12px;"></i> ${esc(c.name)}</span>`)
+  ].filter(Boolean).join('');
+
+  return `
+    <div class="card-body-inner">
+      <div class="info-row">
+        <div class="info-block"><div class="info-block-label">Type</div><div class="info-block-val">${esc(t.type||'—')}</div></div>
+        <div class="info-block"><div class="info-block-label">Durée prévue</div><div class="info-block-val">${t.days?t.days+' jour'+(parseFloat(t.days)>1?'s':''):'—'}</div></div>
+        <div class="info-block"><div class="info-block-label">Date de début</div><div class="info-block-val">${t.dateStart||'—'}</div></div>
+        <div class="info-block"><div class="info-block-label">Date de fin</div><div class="info-block-val">${t.dateEnd||'—'}</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title"><i class="ti ti-certificate" style="font-size:13px;"></i> Appartenance</div>
+        <div class="cert-chips-view">${certHtml||`<span class="cert-none">Non assigné</span>`}</div>
+      </div>
+      ${t.material?`<div class="section"><div class="section-title"><i class="ti ti-tool" style="font-size:13px;"></i> Matériel / équipement</div><div class="text-block">${esc(t.material)}</div></div>`:''}
+      ${t.description?`<div class="section"><div class="section-title"><i class="ti ti-file-description" style="font-size:13px;"></i> Protocole</div><div class="text-block">${esc(t.description)}</div></div>`:''}
+      ${delivs.length?`<div class="section"><div class="section-title"><i class="ti ti-checklist" style="font-size:13px;"></i> Livrables (${delivs.length})</div><div class="deliverable-list">${delivs.map(d=>`<div class="deliverable-item"><i class="ti ti-circle-check"></i>${esc(d)}</div>`).join('')}</div></div>`:''}
+      <div class="section">
+        <div class="section-title"><i class="ti ti-paperclip" style="font-size:13px;"></i> Pièces jointes (${atts.length})</div>
+        <div class="att-list" id="attlist-${t.id}">
+          ${atts.map((a,ai)=>`
+            <div class="att-item">
+              <span class="att-icon">${fileIcon(a.name)}</span>
+              <div class="att-info"><div class="att-name">${esc(a.name)}</div><div class="att-meta">${fmt(a.size)}${a.type?' · '+a.type:''}</div></div>
+              <button class="att-dl" onclick="downloadAtt('${t.id}',${ai})" title="Télécharger le fichier"><i class="ti ti-download"></i></button>
+              <button class="att-del" onclick="delAtt('${t.id}',${ai})" title="Supprimer"><i class="ti ti-x"></i></button>
+            </div>`).join('')}
+        </div>
+        <label class="upload-zone" for="up-${t.id}">
+          <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;"></i>Joindre un fichier — rapport, relevé, dataset, schéma…
+          <input type="file" id="up-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}')"/>
+        </label>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button class="btn sm ghost" onclick="startEdit('${t.id}')"><i class="ti ti-pencil"></i> Modifier</button>
+      <button class="btn sm danger-ghost" onclick="del('${t.id}')"><i class="ti ti-trash"></i> Supprimer</button>
+    </div>`;
+}
+
+/* ---- EDIT FORM ---- */
+function renderEditForm(t, delivs){
+  const typeOpts=TYPE_OPTS.map(o=>`<option${o===t.type?' selected':''}>${esc(o)}</option>`).join('');
+  const statusOpts=Object.entries(STATUS).map(([v,l])=>`<option value="${v}"${v===t.status?' selected':''}>${l}</option>`).join('');
+  const dHtml=delivs.map((d,i)=>`<div class="dchip"><i class="ti ti-circle-check" style="color:var(--success);font-size:14px;flex-shrink:0;"></i><span>${esc(d)}</span><button onclick="removeED('${t.id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
+
+  const certChecks = certifications.length
+    ? certifications.map(c=>`
+      <div class="cert-check-item">
+        <input type="checkbox" id="e-cert-${c.id}-${t.id}" ${(t.certIds||[]).includes(c.id)?'checked':''}/>
+        <label class="cc-label" for="e-cert-${c.id}-${t.id}">${esc(c.name)}${c.description?`<br><small>${esc(c.description)}</small>`:''}</label>
+        <span class="cert-kind-pill ${c.kind==='norm'?'ck-norm':'ck-cert'}">${CERT_KIND_LABEL[c.kind]}</span>
+      </div>`).join('')
+    : `<div style="font-size:12px;color:var(--text3);padding:6px 0;">Aucune certification enregistrée. <button class="btn xs ghost" onclick="openCertModal()"><i class="ti ti-plus" style="font-size:11px;"></i> Gérer</button></div>`;
+
+  return `
+    <div class="edit-banner"><i class="ti ti-pencil"></i> Mode édition — modifiez les champs puis cliquez sur Enregistrer</div>
+    <div class="edit-form">
+      <div class="edit-grid">
+        <div class="efield full"><label>Nom du test *</label><input type="text" id="e-name-${t.id}" value="${esc(t.name)}" placeholder="Nom du test"/></div>
+        <div class="efield"><label>Type de test</label><select id="e-type-${t.id}"><option value="">— Sélectionner —</option>${typeOpts}</select></div>
+        <div class="efield"><label>Statut</label><select id="e-status-${t.id}">${statusOpts}</select></div>
+        <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}"/></div>
+        <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}"/></div>
+        <div class="efield full"><label>Jours prévus</label><input type="number" id="e-days-${t.id}" value="${esc(t.days||'')}" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="efield full"><label>Matériel / équipement requis</label><textarea id="e-material-${t.id}" placeholder="Équipements, instruments de mesure…">${esc(t.material||'')}</textarea></div>
+        <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
+      </div>
+      <div class="edit-sep"></div>
+      <div class="efield" style="margin-bottom:0;">
+        <label style="margin-bottom:8px;">Appartenance &amp; certifications</label>
+        <div class="rnd-toggle">
+          <input type="checkbox" id="e-rnd-${t.id}" ${t.isRnD?'checked':''}/>
+          <label for="e-rnd-${t.id}" class="rnd-toggle-label">
+            <strong>Test interne R&amp;D</strong>
+            <small>Non lié à une certification ou norme externe</small>
+          </label>
+        </div>
+        <div class="cert-checks">${certChecks}</div>
+      </div>
+      <div class="edit-sep"></div>
+      <div class="efield" style="margin-bottom:0;">
+        <label style="margin-bottom:8px;">Livrables attendus</label>
+        <div class="deliv-row">
+          <input type="text" id="e-deliv-inp-${t.id}" placeholder="Ajouter un livrable…" onkeydown="if(event.key==='Enter'){event.preventDefault();addED('${t.id}');}"/>
+          <button class="btn sm" onclick="addED('${t.id}')"><i class="ti ti-plus"></i> Ajouter</button>
+        </div>
+        <div id="e-deliv-list-${t.id}">${dHtml}</div>
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn ghost sm" onclick="cancelEdit('${t.id}')"><i class="ti ti-x"></i> Annuler</button>
+      <button class="btn success sm" onclick="saveEdit('${t.id}')"><i class="ti ti-check"></i> Enregistrer</button>
+    </div>`;
+}
+
+function startEdit(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  editingCards[id]={deliverables:[...(t.deliverables||[])]};
+  render();
+  const body=document.getElementById('body-'+id);
+  const card=document.getElementById('card-'+id);
+  if(body){body.classList.add('open');card.classList.add('expanded','editing');}
+}
+
+function cancelEdit(id){
+  delete editingCards[id];render();
+  const body=document.getElementById('body-'+id);
+  const card=document.getElementById('card-'+id);
+  if(body){body.classList.add('open');card.classList.add('expanded');}
+}
+
+function saveEdit(id){
+  const t=tests.find(x=>x.id===id);if(!t)return;
+  const name=(document.getElementById('e-name-'+id)?.value||'').trim();
+  if(!name){document.getElementById('e-name-'+id)?.focus();return;}
+  t.name=name;
+  t.type=document.getElementById('e-type-'+id)?.value||'';
+  t.status=document.getElementById('e-status-'+id)?.value||'pending';
+  t.dateStart=document.getElementById('e-date-'+id)?.value||'';
+  t.dateEnd=document.getElementById('e-dateend-'+id)?.value||'';
+  t.days=document.getElementById('e-days-'+id)?.value||'';
+  t.material=(document.getElementById('e-material-'+id)?.value||'').trim();
+  t.description=(document.getElementById('e-desc-'+id)?.value||'').trim();
+  t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
+  t.certIds=certifications.filter(c=>document.getElementById('e-cert-'+c.id+'-'+id)?.checked).map(c=>c.id);
+  t.deliverables=[...(editingCards[id]?.deliverables||[])];
+  delete editingCards[id];
+  persist();
+  toast('Test mis à jour.','success');
+  setTimeout(()=>{
+    const body=document.getElementById('body-'+id);
+    const card=document.getElementById('card-'+id);
+    if(body){body.classList.add('open');card.classList.add('expanded');}
+  },50);
+}
+
+function addED(id){
+  const inp=document.getElementById('e-deliv-inp-'+id);if(!inp)return;
+  const v=inp.value.trim();if(!v)return;
+  if(!editingCards[id])return;
+  editingCards[id].deliverables.push(v);inp.value='';
+  rerenderDelivs(id);
+}
+function removeED(id,i){if(!editingCards[id])return;editingCards[id].deliverables.splice(i,1);rerenderDelivs(id);}
+function rerenderDelivs(id){
+  const el=document.getElementById('e-deliv-list-'+id);if(!el)return;
+  el.innerHTML=(editingCards[id]?.deliverables||[]).map((d,i)=>`<div class="dchip"><i class="ti ti-circle-check" style="color:var(--success);font-size:14px;flex-shrink:0;"></i><span>${esc(d)}</span><button onclick="removeED('${id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
+}
+
+function toggle(id){
+  if(editingCards[id])return;
+  const body=document.getElementById('body-'+id);
+  const card=document.getElementById('card-'+id);
+  body.classList.toggle('open');
+  card.classList.toggle('expanded');
+}
+
+/* ---- MODAL NOUVEAU TEST ---- */
+function renderModalCerts(){
+  const el=document.getElementById('f-cert-section');if(!el)return;
+  const label=`<label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:8px;">Appartenance &amp; certifications</label>`;
+  const rndHtml=`
+    <div class="rnd-toggle" style="margin-bottom:6px;">
+      <input type="checkbox" id="f-rnd"/>
+      <label for="f-rnd" class="rnd-toggle-label">
+        <strong>Test interne R&amp;D</strong>
+        <small>Non lié à une certification ou norme externe</small>
+      </label>
+    </div>`;
+  if(!certifications.length){
+    el.innerHTML=label+rndHtml+`<div style="font-size:12px;color:var(--text3);padding:4px 0;">Aucune certification enregistrée. <button class="btn xs ghost" onclick="openCertModal()"><i class="ti ti-plus" style="font-size:11px;"></i> Gérer les certifications</button></div>`;
+    return;
+  }
+  const checksHtml=certifications.map(c=>`
+    <div class="cert-check-item">
+      <input type="checkbox" id="f-cert-${c.id}"/>
+      <label class="cc-label" for="f-cert-${c.id}">${esc(c.name)}${c.description?`<br><small>${esc(c.description)}</small>`:''}</label>
+      <span class="cert-kind-pill ${c.kind==='norm'?'ck-norm':'ck-cert'}">${CERT_KIND_LABEL[c.kind]}</span>
+    </div>`).join('');
+  el.innerHTML=label+rndHtml+`<div class="cert-checks">${checksHtml}</div>`;
+}
+
+function openModal(){
+  tempD=[];
+  ['f-name','f-type','f-date','f-dateend','f-days','f-material','f-desc'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('f-status').value='pending';
+  document.getElementById('f-deliv-list').innerHTML='';
+  renderModalCerts();
+  document.getElementById('overlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('f-name').focus(),80);
+}
+function closeModal(){document.getElementById('overlay').classList.add('hidden');tempD=[];}
+
+function renderModalD(){
+  document.getElementById('f-deliv-list').innerHTML=tempD.map((d,i)=>`<div class="d-chip"><i class="ti ti-circle-check" style="color:var(--success);font-size:14px;flex-shrink:0;"></i><span>${esc(d)}</span><button onclick="removeD(${i})"><i class="ti ti-x"></i></button></div>`).join('');
+}
+function addD(){const v=document.getElementById('f-deliv-inp').value.trim();if(!v)return;tempD.push(v);document.getElementById('f-deliv-inp').value='';renderModalD();}
+function removeD(i){tempD.splice(i,1);renderModalD();}
+
+function saveNew(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){document.getElementById('f-name').focus();return;}
+  const certIds=certifications.filter(c=>document.getElementById('f-cert-'+c.id)?.checked).map(c=>c.id);
+  const isRnD=document.getElementById('f-rnd')?.checked||false;
+  tests.push({
+    id:uid(), attachments:[], name,
+    type:document.getElementById('f-type').value,
+    status:document.getElementById('f-status').value,
+    dateStart:document.getElementById('f-date').value,
+    dateEnd:document.getElementById('f-dateend').value,
+    days:document.getElementById('f-days').value,
+    material:document.getElementById('f-material').value.trim(),
+    description:document.getElementById('f-desc').value.trim(),
+    deliverables:[...tempD],
+    certIds, isRnD
+  });
+  closeModal();persist();toast('Test créé.','success');
+}
+
+function del(id){
+  if(!confirm('Supprimer ce test ?'))return;
+  tests=tests.filter(x=>x.id!==id);
+  delete editingCards[id];
+  persist();toast('Test supprimé.','info');
+}
+
+function delAtt(testId,ai){
+  const t=tests.find(x=>x.id===testId);if(!t)return;
+  t.attachments.splice(ai,1);persist();
+}
+
+function downloadAtt(testId,ai){
+  const t=tests.find(x=>x.id===testId);if(!t)return;
+  const a=t.attachments[ai];if(!a||!a.data)return;
+  const link=document.createElement('a');
+  link.href=a.data;link.download=a.name;
+  document.body.appendChild(link);link.click();document.body.removeChild(link);
+  toast('Téléchargement de «\u00a0'+a.name+'\u00a0»…','info');
+}
+
+function handleUpload(e,testId){
+  const t=tests.find(x=>x.id===testId);if(!t)return;
+  const files=Array.from(e.target.files);let done=0;
+  files.forEach(file=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      t.attachments.push({name:file.name,type:file.type,size:file.size,data:ev.target.result});
+      if(++done===files.length){persist();toast(done+' fichier'+(done>1?'s':'')+' joint'+(done>1?'s':'')+'.','success');}
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+function fileIcon(name){
+  const ext=(name||'').split('.').pop().toLowerCase();
+  const m={
+    pdf:'<i class="ti ti-file-type-pdf" style="color:#f43f5e;"></i>',
+    csv:'<i class="ti ti-file-spreadsheet" style="color:#22d3a0;"></i>',
+    xlsx:'<i class="ti ti-file-spreadsheet" style="color:#22d3a0;"></i>',
+    xls:'<i class="ti ti-file-spreadsheet" style="color:#22d3a0;"></i>',
+    docx:'<i class="ti ti-file-type-docx" style="color:#4f7bff;"></i>',
+    doc:'<i class="ti ti-file-type-doc" style="color:#4f7bff;"></i>',
+    png:'<i class="ti ti-photo" style="color:#f59e0b;"></i>',
+    jpg:'<i class="ti ti-photo" style="color:#f59e0b;"></i>',
+    jpeg:'<i class="ti ti-photo" style="color:#f59e0b;"></i>',
+    zip:'<i class="ti ti-file-zip" style="color:#a78bfa;"></i>',
+    mat:'<i class="ti ti-chart-line" style="color:#38bdf8;"></i>',
+    dbc:'<i class="ti ti-network" style="color:#38bdf8;"></i>'
+  };
+  return m[ext]||'<i class="ti ti-file" style="color:var(--text3);"></i>';
+}
+
+/* ---- CERT MODAL ---- */
+function openCertModal(){
+  renderCertModal();
+  document.getElementById('cert-overlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('c-name').focus(),80);
+}
+function closeCertModal(){document.getElementById('cert-overlay').classList.add('hidden');}
+
+function renderCertModal(){
+  // Stats bar
+  const statsEl=document.getElementById('cert-stats-section');
+  if(statsEl){
+    const nNorms=certifications.filter(c=>c.kind==='norm').length;
+    const nCerts=certifications.filter(c=>c.kind==='cert').length;
+    const nRnd=tests.filter(t=>t.isRnD).length;
+    const linked=new Set(tests.flatMap(t=>t.certIds||[])).size;
+    statsEl.innerHTML=certifications.length?`
+      <div class="cert-stats-bar">
+        <div class="cert-stat"><div class="cert-stat-val">${certifications.length}</div><div class="cert-stat-lbl">Entrées</div></div>
+        <div class="cert-stat"><div class="cert-stat-val">${nNorms}</div><div class="cert-stat-lbl">Normes</div></div>
+        <div class="cert-stat"><div class="cert-stat-val">${nCerts}</div><div class="cert-stat-lbl">Certifications</div></div>
+        <div class="cert-stat"><div class="cert-stat-val">${nRnd}</div><div class="cert-stat-lbl">Tests R&D</div></div>
+        <div class="cert-stat"><div class="cert-stat-val">${linked}</div><div class="cert-stat-lbl">Certs utilisées</div></div>
+      </div>`:'';
+  }
+
+  const el=document.getElementById('cert-list-container');if(!el)return;
+  if(!certifications.length){
+    el.innerHTML=`<div class="cert-empty-msg"><i class="ti ti-certificate-off"></i><p>Aucune certification ou norme enregistrée.</p></div><div class="cert-divider"></div>`;
+    return;
+  }
+
+  const counts={};
+  certifications.forEach(c=>{counts[c.id]=tests.filter(t=>(t.certIds||[]).includes(c.id)).length;});
+
+  el.innerHTML=`
+    <div class="cert-list">
+      ${certifications.map(c=>`
+        <div class="cert-item">
+          <span class="cert-kind-pill ${c.kind==='norm'?'ck-norm':'ck-cert'}" style="flex-shrink:0;">${CERT_KIND_LABEL[c.kind]}</span>
+          <div class="cert-item-info">
+            <div class="cert-item-name">${esc(c.name)}</div>
+            ${c.description?`<div class="cert-item-desc">${esc(c.description)}</div>`:''}
+          </div>
+          <div class="cert-item-stats">
+            <i class="ti ti-flask-2" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>${counts[c.id]} test${counts[c.id]!==1?'s':''}
+          </div>
+          <button class="cert-item-del" onclick="deleteCert('${c.id}')" title="Supprimer cette entrée"><i class="ti ti-trash"></i></button>
+        </div>`).join('')}
+    </div>
+    <div class="cert-divider"></div>`;
+}
+
+function saveNewCert(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){document.getElementById('c-name').focus();return;}
+  const kind=document.getElementById('c-kind').value||'norm';
+  const description=document.getElementById('c-desc').value.trim();
+  if(certifications.find(c=>c.name.toLowerCase()===name.toLowerCase())){
+    toast('Cette entrée existe déjà.','danger');return;
+  }
+  certifications.push({id:uid(),kind,name,description});
+  document.getElementById('c-name').value='';
+  document.getElementById('c-desc').value='';
+  persistCerts();
+  renderCertModal();
+  toast(`"${name}" ajouté.`,'success');
+}
+
+function deleteCert(id){
+  const c=certifications.find(x=>x.id===id);
+  const linked=tests.filter(t=>(t.certIds||[]).includes(id)).length;
+  const msg=linked
+    ? `Supprimer "${c?.name}" ? Elle est utilisée par ${linked} test(s) — elle sera retirée de tous.`
+    : `Supprimer "${c?.name}" ?`;
+  if(!confirm(msg))return;
+  certifications=certifications.filter(x=>x.id!==id);
+  tests.forEach(t=>{if(t.certIds)t.certIds=t.certIds.filter(cid=>cid!==id);});
+  persistCerts();
+  renderCertModal();
+  toast('Entrée supprimée.','info');
+}
+
+/* ---- TOAST ---- */
+function toast(msg,type='info'){
+  const el=document.createElement('div');el.className='toast '+(type||'');
+  const icon={success:'ti-check',info:'ti-info-circle',danger:'ti-alert-circle'}[type]||'ti-info-circle';
+  el.innerHTML=`<i class="ti ${icon}"></i> ${msg}`;
+  document.body.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},2400);
+}
+
+/* ---- PDF EXPORT ---- */
+function exportPDF(){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=16,CW=W-M*2;let y=20;
+  const chk=(n=12)=>{if(y+n>275){doc.addPage();y=18;}};
+  doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20,20,20);
+  doc.text('Registre des Tests — Laboratoire',M,y);y+=8;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(140,140,140);
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'})+' — '+tests.length+' test(s)',M,y);y+=6;
+  doc.setDrawColor(230,230,230);doc.setLineWidth(.5);doc.line(M,y,W-M,y);y+=8;
+
+  tests.forEach((t,i)=>{
+    chk(22);
+    doc.setFillColor(245,245,248);doc.roundedRect(M,y-4,CW,11,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,20,20);
+    doc.text('#'+String(i+1).padStart(2,'0')+'  '+t.name,M+4,y+3.5);y+=11;
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+    const meta=[
+      t.type||null,
+      t.days?t.days+' jour(s)':null,
+      t.dateStart?'Début : '+t.dateStart:null,
+      t.dateEnd?'Fin : '+t.dateEnd:null,
+      'Statut : '+STATUS[t.status]
+    ].filter(Boolean).join('   ·   ');
+    if(meta){doc.text(meta,M+4,y);y+=6;}
+    // Appartenance
+    const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
+    if(t.isRnD||linkedCerts.length){
+      chk(8);
+      const parts=(t.isRnD?['R&D Interne']:[]).concat(linkedCerts.map(c=>c.name));
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Appartenance :',M+4,y);
+      doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+      const ls=doc.splitTextToSize(parts.join(', '),CW-38);
+      doc.text(ls,M+32,y);y+=ls.length*4.5+1;
+    }
+    if(t.material){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Matériel :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.material,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
+    if(t.description){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Protocole :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.description,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
+    if((t.deliverables||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Livrables :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);t.deliverables.forEach(d=>{chk(5);doc.text('• '+d,M+8,y);y+=4.8;});}
+    if((t.attachments||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Pièces jointes ('+t.attachments.length+') :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);t.attachments.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});}
+    y+=6;doc.setDrawColor(235,235,235);doc.line(M,y-2,W-M,y-2);
+  });
+  if(!tests.length){doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(160,160,160);doc.text('Aucun test enregistré.',M,y);}
+  doc.save('registre-tests-labo.pdf');
+  toast('PDF exporté avec succès.','success');
+}
+
+/* ---- EVENTS ---- */
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();}});
+window.addEventListener('load', ()=>{ load(); });
+</script>
+</body>
+</html>

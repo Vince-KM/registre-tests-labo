@@ -730,6 +730,8 @@ function render(){
     const isOpen=openIds.has(t.id)||editingCards[t.id];
     const isEditing=!!editingCards[t.id];
     const edDelivs=isEditing?editingCards[t.id].deliverables:delivs;
+    // Compte réel depuis SP si dispo, sinon JSON local
+    const attCount = _attCount[t.id] !== undefined ? _attCount[t.id] : atts.length;
 
     // Date range subtitle
     let dateSub='';
@@ -749,7 +751,7 @@ function render(){
           ${t.type?`<span class="chip chip-type">${esc(t.type)}</span>`:''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
-          ${atts.length?`<span class="chip chip-files"><i class="ti ti-paperclip" style="font-size:12px;"></i>${atts.length}</span>`:''}
+          ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
           ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
           <span class="chip ${STATUS_CLASS[t.status]}">${STATUS[t.status]}</span>
           ${isEditing?`<span class="chip" style="background:rgba(34,211,160,.15);color:var(--success);"><i class="ti ti-pencil" style="font-size:11px;"></i> Édition</span>`:''}
@@ -1082,7 +1084,8 @@ async function deleteByItemId(itemId, testId, fileName){
 
 // Cache mémoire des listings de dossiers : { testId: { items, ts } }
 const _attCache = {};
-const ATT_CACHE_TTL = 30000; // 30s — au-delà on revalide en arrière-plan
+const _attCount = {}; // { testId: number } — vrai compte depuis SharePoint
+const ATT_CACHE_TTL = 30000;
 
 // Rendu HTML d'une liste de driveItems
 function renderSpItems(items, testId){
@@ -1149,6 +1152,10 @@ async function refreshAttList(testId, forceRefresh){
 
   // Met à jour le cache
   _attCache[testId]={ items, ts:Date.now() };
+  // Met à jour le compteur réel et le chip dans le header de la carte
+  const localCount = (t.attachments||[]).filter(a=>a.data).length;
+  _attCount[testId] = items.length + localCount;
+  updateAttChip(testId, _attCount[testId]);
 
   // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)
   const elNow=document.getElementById('attlist-'+testId);
@@ -1157,7 +1164,31 @@ async function refreshAttList(testId, forceRefresh){
   }
 }
 
-// Rendu des pièces jointes base64 locales (rétrocompatibilité)
+// Met à jour uniquement le chip trombone dans le header de la carte
+function updateAttChip(testId, count){
+  const card = document.getElementById('card-'+testId);
+  if(!card) return;
+  const chips = card.querySelector('.card-chips');
+  if(!chips) return;
+  // Trouve le chip trombone existant ou le crée
+  let chip = chips.querySelector('.chip-att-live');
+  if(count > 0){
+    if(!chip){
+      chip = document.createElement('span');
+      chip.className = 'chip chip-files chip-att-live';
+      // Insère avant le chip de statut
+      const statusChip = chips.querySelector('.chip-pending, .chip-progress, .chip-done, .chip-fail');
+      chips.insertBefore(chip, statusChip || null);
+    }
+    chip.innerHTML = `<i class="ti ti-paperclip" style="font-size:12px;"></i>${count}`;
+  } else if(chip){
+    chip.remove();
+  }
+  // Retire l'ancien chip statique (issu du JSON local) s'il existe encore
+  chips.querySelectorAll('.chip-files:not(.chip-att-live)').forEach(el=>{
+    if(el.querySelector('.ti-paperclip')) el.remove();
+  });
+}
 function renderLocalAtts(t){
   return (t.attachments||[]).filter(a=>a.data).map((a,ai)=>`
     <div class="att-item">

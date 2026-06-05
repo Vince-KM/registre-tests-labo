@@ -712,18 +712,9 @@ function renderViewBody(t){
       ${t.description?`<div class="section"><div class="section-title"><i class="ti ti-file-description" style="font-size:13px;"></i> Protocole</div><div class="text-block">${esc(t.description)}</div></div>`:''}
       ${delivs.length?`<div class="section"><div class="section-title"><i class="ti ti-checklist" style="font-size:13px;"></i> Livrables (${delivs.length})</div><div class="deliverable-list">${delivs.map(d=>`<div class="deliverable-item"><i class="ti ti-circle-check"></i>${esc(d)}</div>`).join('')}</div></div>`:''}
       <div class="section">
-        <div class="section-title"><i class="ti ti-paperclip" style="font-size:13px;"></i> Pièces jointes (${atts.length})</div>
+        <div class="section-title"><i class="ti ti-paperclip" style="font-size:13px;"></i> Pièces jointes</div>
         <div class="att-list" id="attlist-${t.id}">
-          ${atts.map((a,ai)=>`
-            <div class="att-item">
-              <span class="att-icon">${fileIcon(a.name)}</span>
-              <div class="att-info">
-                <div class="att-name">${esc(a.name)}</div>
-                <div class="att-meta">${fmt(a.size)}${a.type?' · '+a.type:''}${a.spPath?' · <i class="ti ti-cloud" style="font-size:11px;vertical-align:-1px;color:var(--accent);"></i> SharePoint':' · local'}</div>
-              </div>
-              <button class="att-dl" onclick="downloadAtt('${t.id}',${ai})" title="Télécharger le fichier"><i class="ti ti-download"></i></button>
-              <button class="att-del" onclick="delAtt('${t.id}',${ai})" title="Supprimer"><i class="ti ti-x"></i></button>
-            </div>`).join('')}
+          <div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>
         </div>
         <label class="upload-zone" for="up-${t.id}">
           <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;"></i>Joindre un fichier — rapport, relevé, dataset, schéma…
@@ -807,6 +798,7 @@ function cancelEdit(id){
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
   if(body){body.classList.add('open');card.classList.add('expanded');}
+  refreshAttList(id);
 }
 
 function saveEdit(id){
@@ -831,6 +823,7 @@ function saveEdit(id){
     const body=document.getElementById('body-'+id);
     const card=document.getElementById('card-'+id);
     if(body){body.classList.add('open');card.classList.add('expanded');}
+    refreshAttList(id);
   },50);
 }
 
@@ -851,8 +844,10 @@ function toggle(id){
   if(editingCards[id])return;
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
+  const wasOpen=body.classList.contains('open');
   body.classList.toggle('open');
   card.classList.toggle('expanded');
+  if(!wasOpen) refreshAttList(id);
 }
 
 /* ---- MODAL NOUVEAU TEST ---- */
@@ -943,6 +938,124 @@ function slugifyTestName(name){
 // Construit le chemin OneDrive d'un fichier : Labo/Attachments/<slug>/<filename>
 function attFolderPath(testName){ return `${SP_CONFIG.folderPath}/Attachments/${slugifyTestName(testName)}`; }
 function attFilePath(testName, fileName){ return `${attFolderPath(testName)}/${fileName}`; }
+
+// Liste les fichiers présents dans le dossier SharePoint du test (lecture live)
+async function listSpFolder(testName){
+  const token=await getToken(); if(!token) return null;
+  const folderPath=attFolderPath(testName);
+  try{
+    const res=await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(folderPath)}:/children?$select=id,name,size,file,lastModifiedDateTime`,
+      {headers:{Authorization:`Bearer ${token}`}}
+    );
+    if(res.status===404) return []; // dossier pas encore créé
+    if(!res.ok) return null;
+    const json=await res.json();
+    return (json.value||[]).filter(i=>i.file); // uniquement les fichiers, pas les sous-dossiers
+  }catch(e){ return null; }
+}
+
+// Télécharge un fichier par son driveItem id (toujours la version actuelle, pas de cache)
+async function downloadByItemId(itemId, fileName){
+  const token=await getToken(); if(!token) return;
+  toast('Récupération de la dernière version…','info');
+  try{
+    const res=await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/content`,
+      {headers:{Authorization:`Bearer ${token}`}}
+    );
+    if(!res.ok){ toast(`Erreur ${res.status} lors du téléchargement.`,'danger'); return; }
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url; link.download=fileName;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    toast('«\u00a0'+fileName+'\u00a0» téléchargé (version actuelle).','success');
+  }catch(e){ toast('Erreur de téléchargement.','danger'); }
+}
+
+// Supprime un fichier par son driveItem id
+async function deleteByItemId(itemId, testId, fileName){
+  if(!confirm(`Supprimer «\u00a0${fileName}\u00a0» ?`)) return;
+  const token=await getToken(); if(!token) return;
+  try{
+    await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${itemId}`,{
+      method:'DELETE', headers:{Authorization:`Bearer ${token}`}
+    });
+    // Retire aussi de la liste locale si présent
+    const t=tests.find(x=>x.id===testId);
+    if(t) t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
+    await persist();
+    toast('Fichier supprimé.','info');
+    refreshAttList(testId); // recharge la liste
+  }catch(e){ toast('Erreur lors de la suppression.','danger'); }
+}
+
+// Recharge et réaffiche la liste des pièces jointes d'un test
+async function refreshAttList(testId){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  const el=document.getElementById('attlist-'+testId); if(!el) return;
+
+  el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement des fichiers SharePoint…</div>`;
+
+  if(!currentAccount){
+    // Pas connecté : affiche uniquement les fichiers base64 locaux
+    el.innerHTML=renderLocalAtts(t);
+    return;
+  }
+
+  const items=await listSpFolder(t.name);
+
+  if(items===null){
+    el.innerHTML=`<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire le dossier SharePoint.</div>`+renderLocalAtts(t);
+    return;
+  }
+
+  if(items.length===0 && !(t.attachments||[]).filter(a=>a.data).length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun fichier dans ce dossier.</div>`;
+    return;
+  }
+
+  // Fichiers live depuis SharePoint
+  const spHtml=items.map(item=>{
+    const dt=new Date(item.lastModifiedDateTime).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="att-item">
+      <span class="att-icon">${fileIcon(item.name)}</span>
+      <div class="att-info">
+        <div class="att-name">${esc(item.name)}</div>
+        <div class="att-meta">${fmt(item.size)} · <i class="ti ti-clock" style="font-size:11px;vertical-align:-1px;"></i> ${dt} · <i class="ti ti-cloud" style="font-size:11px;vertical-align:-1px;color:var(--accent);"></i> SharePoint</div>
+      </div>
+      <button class="att-dl" onclick="downloadByItemId('${item.id}','${esc(item.name)}')" title="Télécharger la version actuelle"><i class="ti ti-download"></i></button>
+      <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${esc(item.name)}')" title="Supprimer"><i class="ti ti-x"></i></button>
+    </div>`;
+  }).join('');
+
+  // Fichiers base64 locaux (anciens, pas encore sur SP)
+  const localHtml=renderLocalAtts(t);
+  el.innerHTML=spHtml+localHtml;
+}
+
+// Rendu des pièces jointes base64 locales (rétrocompatibilité)
+function renderLocalAtts(t){
+  return (t.attachments||[]).filter(a=>a.data).map((a,ai)=>`
+    <div class="att-item">
+      <span class="att-icon">${fileIcon(a.name)}</span>
+      <div class="att-info">
+        <div class="att-name">${esc(a.name)}</div>
+        <div class="att-meta">${fmt(a.size)}${a.type?' · '+a.type:''} · local</div>
+      </div>
+      <button class="att-dl" onclick="downloadLocalAtt('${t.id}',${ai})" title="Télécharger"><i class="ti ti-download"></i></button>
+    </div>`).join('');
+}
+
+function downloadLocalAtt(testId, ai){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  const a=(t.attachments||[]).filter(x=>x.data)[ai]; if(!a||!a.data) return;
+  const link=document.createElement('a');
+  link.href=a.data; link.download=a.name;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
 
 // URL Graph pour upload/download d'un fichier
 function spFileUrl(path){ return `https://graph.microsoft.com/v1.0/me/drive/root:/${path}:/content`; }
@@ -1057,6 +1170,7 @@ async function handleUpload(e, testId){
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé');
     setTimeout(()=>setSyncMsg(''),3000);
     toast(done+' fichier'+(done>1?'s':'')+' uploadé'+(done>1?'s':'')+' sur SharePoint.','success');
+    refreshAttList(testId);
   } else {
     setSyncMsg('');
   }

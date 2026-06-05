@@ -684,6 +684,14 @@ function render(){
       </div>
     </div>`;
   }).join('');
+
+  // Après reconstruction du DOM, réinjecter les pièces jointes
+  // pour toutes les cartes ouvertes (instantané si cache présent)
+  data.forEach(t=>{
+    if((openIds.has(t.id)||editingCards[t.id]) && !editingCards[t.id]){
+      refreshAttList(t.id);
+    }
+  });
 }
 
 /* ---- VIEW BODY ---- */

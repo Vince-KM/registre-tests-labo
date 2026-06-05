@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.2/js/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js" defer></script>
 <style>
 :root {
   --bg:#0f1117; --bg2:#161a24; --bg3:#1e2333; --bg4:#252b3b;
@@ -434,7 +434,7 @@ const SP_CONFIG = {
 let msalInstance = null;
 let currentAccount = null;
 
-function initMsal(){
+async function initMsal(){
   const config = {
     auth: {
       clientId: SP_CONFIG.clientId,
@@ -444,6 +444,10 @@ function initMsal(){
     cache: { cacheLocation: 'sessionStorage' }
   };
   msalInstance = new msal.PublicClientApplication(config);
+  // MSAL v3 requiert initialize() avant tout appel
+  await msalInstance.initialize();
+  // Gère le retour de redirect si utilisé
+  await msalInstance.handleRedirectPromise().catch(()=>{});
   const accounts = msalInstance.getAllAccounts();
   if(accounts.length > 0){
     currentAccount = accounts[0];
@@ -713,7 +717,10 @@ function renderViewBody(t){
           ${atts.map((a,ai)=>`
             <div class="att-item">
               <span class="att-icon">${fileIcon(a.name)}</span>
-              <div class="att-info"><div class="att-name">${esc(a.name)}</div><div class="att-meta">${fmt(a.size)}${a.type?' · '+a.type:''}</div></div>
+              <div class="att-info">
+                <div class="att-name">${esc(a.name)}</div>
+                <div class="att-meta">${fmt(a.size)}${a.type?' · '+a.type:''}${a.spPath?' · <i class="ti ti-cloud" style="font-size:11px;vertical-align:-1px;color:var(--accent);"></i> SharePoint':' · local'}</div>
+              </div>
               <button class="att-dl" onclick="downloadAtt('${t.id}',${ai})" title="Télécharger le fichier"><i class="ti ti-download"></i></button>
               <button class="att-del" onclick="delAtt('${t.id}',${ai})" title="Supprimer"><i class="ti ti-x"></i></button>
             </div>`).join('')}
@@ -919,31 +926,140 @@ function del(id){
   persist();toast('Test supprimé.','info');
 }
 
-function delAtt(testId,ai){
-  const t=tests.find(x=>x.id===testId);if(!t)return;
-  t.attachments.splice(ai,1);persist();
+/* ---- HELPERS SHAREPOINT ATTACHMENTS ---- */
+
+// Transforme le nom du test en slug valide pour un nom de dossier OneDrive
+// Ex: "Test Rds(on) 48V / 300A — 25°C" → "Test_Rdson_48V_300A_25C"
+function slugifyTestName(name){
+  return (name||'untitled')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')  // retire accents
+    .replace(/[/\\:*?"<>|()°]/g,'')                   // retire caractères interdits OneDrive
+    .replace(/\s+/g,'_')                               // espaces → underscores
+    .replace(/_+/g,'_')                                // doubles underscores → un seul
+    .replace(/^_|_$/g,'')                              // trim underscores
+    .slice(0,80);                                      // limite longueur
 }
 
-function downloadAtt(testId,ai){
-  const t=tests.find(x=>x.id===testId);if(!t)return;
-  const a=t.attachments[ai];if(!a||!a.data)return;
-  const link=document.createElement('a');
-  link.href=a.data;link.download=a.name;
-  document.body.appendChild(link);link.click();document.body.removeChild(link);
-  toast('Téléchargement de «\u00a0'+a.name+'\u00a0»…','info');
+// Construit le chemin OneDrive d'un fichier : Labo/Attachments/<slug>/<filename>
+function attFolderPath(testName){ return `${SP_CONFIG.folderPath}/Attachments/${slugifyTestName(testName)}`; }
+function attFilePath(testName, fileName){ return `${attFolderPath(testName)}/${fileName}`; }
+
+// URL Graph pour upload/download d'un fichier
+function spFileUrl(path){ return `https://graph.microsoft.com/v1.0/me/drive/root:/${path}:/content`; }
+// URL Graph pour obtenir un lien de téléchargement temporaire (@microsoft.graph.downloadUrl)
+function spFileMeta(path){ return `https://graph.microsoft.com/v1.0/me/drive/root:/${path}`; }
+
+async function delAtt(testId, ai){
+  const t=tests.find(x=>x.id===testId); if(!t)return;
+  const a=t.attachments[ai]; if(!a)return;
+  const token=await getToken();
+  if(token && a.spPath){
+    try{
+      await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${a.spPath}`,{
+        method:'DELETE', headers:{Authorization:`Bearer ${token}`}
+      });
+    }catch(e){ /* si fichier déjà absent, on continue */ }
+  }
+  t.attachments.splice(ai,1);
+  persist();
+  toast('Pièce jointe supprimée.','info');
 }
 
-function handleUpload(e,testId){
-  const t=tests.find(x=>x.id===testId);if(!t)return;
-  const files=Array.from(e.target.files);let done=0;
-  files.forEach(file=>{
-    const r=new FileReader();
-    r.onload=ev=>{
-      t.attachments.push({name:file.name,type:file.type,size:file.size,data:ev.target.result});
-      if(++done===files.length){persist();toast(done+' fichier'+(done>1?'s':'')+' joint'+(done>1?'s':'')+'.','success');}
-    };
-    r.readAsDataURL(file);
-  });
+async function downloadAtt(testId, ai){
+  const t=tests.find(x=>x.id===testId); if(!t)return;
+  const a=t.attachments[ai]; if(!a)return;
+
+  // Fichier hébergé sur SharePoint
+  if(a.spPath){
+    if(!currentAccount){ toast('Connectez-vous pour télécharger.','danger'); return; }
+    const token=await getToken(); if(!token)return;
+    toast('Récupération du fichier…','info');
+    try{
+      // On récupère le downloadUrl depuis les métadonnées (lien direct temporaire)
+      const meta=await fetch(spFileMeta(a.spPath),{headers:{Authorization:`Bearer ${token}`}});
+      const json=await meta.json();
+      const dlUrl=json['@microsoft.graph.downloadUrl'];
+      if(dlUrl){
+        const link=document.createElement('a');
+        link.href=dlUrl; link.download=a.name; link.target='_blank';
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        toast('Téléchargement de «\u00a0'+a.name+'\u00a0»…','success');
+      } else {
+        toast('Impossible de récupérer le lien de téléchargement.','danger');
+      }
+    }catch(e){ toast('Erreur de téléchargement.','danger'); }
+    return;
+  }
+
+  // Fallback : ancien format base64 (rétrocompatibilité)
+  if(a.data){
+    const link=document.createElement('a');
+    link.href=a.data; link.download=a.name;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    toast('Téléchargement de «\u00a0'+a.name+'\u00a0»…','info');
+  }
+}
+
+async function handleUpload(e, testId){
+  const t=tests.find(x=>x.id===testId); if(!t)return;
+  const files=Array.from(e.target.files); if(!files.length)return;
+  e.target.value=''; // reset input
+
+  // Sans connexion : fallback base64 (localStorage uniquement)
+  if(!currentAccount){
+    let done=0;
+    files.forEach(file=>{
+      const r=new FileReader();
+      r.onload=ev=>{
+        t.attachments.push({name:file.name,type:file.type,size:file.size,data:ev.target.result});
+        if(++done===files.length){ persist(); toast(done+' fichier'+(done>1?'s':'')+' joint'+(done>1?'s':'')+' (local).','info'); }
+      };
+      r.readAsDataURL(file);
+    });
+    return;
+  }
+
+  // Avec connexion : upload dans Labo/Attachments/<slug-test>/
+  const token=await getToken(); if(!token){ toast('Impossible d\'obtenir le token.','danger'); return; }
+  const folderPath=attFolderPath(t.name);
+  setSyncMsg('<span class="sync-spinner"></span>Upload en cours…');
+
+  let done=0; let errors=0;
+  for(const file of files){
+    try{
+      const uploadPath=`${folderPath}/${file.name}`;
+      const uploadUrl=spFileUrl(uploadPath);
+
+      // Pour les fichiers > 4 Mo il faudrait une upload session, ici on couvre jusqu'à ~60 Mo avec PUT simple
+      const res=await fetch(uploadUrl,{
+        method:'PUT',
+        headers:{ Authorization:`Bearer ${token}`, 'Content-Type': file.type||'application/octet-stream' },
+        body: file
+      });
+
+      if(res.ok){
+        // Retire un éventuel ancien fichier du même nom (déjà présent dans la liste)
+        t.attachments=t.attachments.filter(a=>!(a.spPath===uploadPath));
+        t.attachments.push({ name:file.name, type:file.type, size:file.size, spPath:uploadPath });
+        done++;
+      } else {
+        errors++;
+        toast(`Erreur upload «\u00a0${file.name}\u00a0» (${res.status}).`,'danger');
+      }
+    }catch(err){
+      errors++;
+      toast(`Erreur réseau pour «\u00a0${file.name}\u00a0».`,'danger');
+    }
+  }
+
+  if(done>0){
+    await persist();
+    setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé');
+    setTimeout(()=>setSyncMsg(''),3000);
+    toast(done+' fichier'+(done>1?'s':'')+' uploadé'+(done>1?'s':'')+' sur SharePoint.','success');
+  } else {
+    setSyncMsg('');
+  }
 }
 
 function fileIcon(name){
@@ -1107,7 +1223,21 @@ function exportPDF(){
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();}});
-window.addEventListener('load', ()=>{ load(); });
+
+// Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser
+function waitForMsal(attempts){
+  if(typeof msal !== 'undefined'){
+    load();
+  } else if(attempts > 0){
+    setTimeout(()=>waitForMsal(attempts-1), 100);
+  } else {
+    // MSAL non disponible (réseau, bloqueur) → fallback local
+    console.warn('MSAL non chargé — mode local uniquement.');
+    setAuthBar(false);
+    loadLocalFallback();
+  }
+}
+window.addEventListener('load', ()=>{ waitForMsal(50); });
 </script>
 </body>
 </html>

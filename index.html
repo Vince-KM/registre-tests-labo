@@ -1003,11 +1003,38 @@ function saveNew(){
   closeModal();persist();toast('Test créé.','success');
 }
 
-function del(id){
-  if(!confirm('Supprimer ce test ?'))return;
-  tests=tests.filter(x=>x.id!==id);
+async function del(id){
+  const t=tests.find(x=>x.id===id); if(!t) return;
+  if(!confirm(`Supprimer le test "${t.name}" ?\n\nLe dossier SharePoint associé et tous ses fichiers seront également supprimés.`)) return;
+
+  // Supprime le dossier SharePoint du test (et tout son contenu)
+  if(currentAccount){
+    const token = await getToken();
+    if(token){
+      const folderPath = attFolderPath(t.name);
+      try{
+        const res = await fetch(
+          `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(folderPath)}`,
+          { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } }
+        );
+        // 204 = supprimé, 404 = dossier n'existait pas — les deux sont OK
+        if(res.status !== 204 && res.status !== 404){
+          toast(`Avertissement : dossier SharePoint non supprimé (${res.status}).`,'warning');
+        }
+      }catch(e){
+        toast('Avertissement : impossible de supprimer le dossier SharePoint.','warning');
+      }
+    }
+  }
+
+  // Nettoie le cache local pour ce test
+  delete _attCache[id];
+  delete _attCount[id];
   delete editingCards[id];
-  persist();toast('Test supprimé.','info');
+
+  tests = tests.filter(x=>x.id!==id);
+  await persist();
+  toast('Test et dossier supprimés.','info');
 }
 
 /* ---- HELPERS SHAREPOINT ATTACHMENTS ---- */

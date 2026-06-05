@@ -969,24 +969,24 @@ async function downloadAtt(testId, ai){
   const t=tests.find(x=>x.id===testId); if(!t)return;
   const a=t.attachments[ai]; if(!a)return;
 
-  // Fichier hébergé sur SharePoint
+  // Fichier hébergé sur SharePoint — télécharge le contenu live via Graph
   if(a.spPath){
     if(!currentAccount){ toast('Connectez-vous pour télécharger.','danger'); return; }
     const token=await getToken(); if(!token)return;
-    toast('Récupération du fichier…','info');
+    toast('Récupération de la dernière version…','info');
     try{
-      // On récupère le downloadUrl depuis les métadonnées (lien direct temporaire)
-      const meta=await fetch(spFileMeta(a.spPath),{headers:{Authorization:`Bearer ${token}`}});
-      const json=await meta.json();
-      const dlUrl=json['@microsoft.graph.downloadUrl'];
-      if(dlUrl){
-        const link=document.createElement('a');
-        link.href=dlUrl; link.download=a.name; link.target='_blank';
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-        toast('Téléchargement de «\u00a0'+a.name+'\u00a0»…','success');
-      } else {
-        toast('Impossible de récupérer le lien de téléchargement.','danger');
-      }
+      // /content retourne directement les bytes du fichier (toujours la version actuelle)
+      const res=await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${a.spPath}:/content`,{
+        headers:{ Authorization:`Bearer ${token}` }
+      });
+      if(!res.ok){ toast(`Erreur ${res.status} lors du téléchargement.`,'danger'); return; }
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a');
+      link.href=url; link.download=a.name;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      setTimeout(()=>URL.revokeObjectURL(url), 10000);
+      toast('«\u00a0'+a.name+'\u00a0» téléchargé (version actuelle).','success');
     }catch(e){ toast('Erreur de téléchargement.','danger'); }
     return;
   }

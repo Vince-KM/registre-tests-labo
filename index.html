@@ -526,6 +526,7 @@ async function loadFromSharePoint(){
     if(rCerts.ok) certifications = await rCerts.json(); else certifications = [];
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Synchronisé');
     setTimeout(()=>setSyncMsg(''), 3000);
+    startPolling();
   } catch(e){
     loadLocalFallback();
     toast('Erreur de synchronisation SharePoint — données locales chargées.','danger');
@@ -559,15 +560,59 @@ function load(){
   initMsal();
 }
 
+// Mutex simple : évite deux sauvegardes simultanées qui se piétineraient
+let _saving = false;
+
+// Merge : fusionne les tests locaux avec la version distante
+// Règle : chaque test est identifié par son id
+//   - test présent en local mais pas en remote  → ajout (créé par moi)
+//   - test présent en remote mais pas en local  → on le garde (créé par quelqu'un d'autre)
+//   - test présent des deux côtés              → on garde la version la plus récente (updatedAt)
+function mergeTests(local, remote){
+  const byId = {};
+  // D'abord on intègre tout ce qui est distant
+  remote.forEach(t => { byId[t.id] = t; });
+  // Ensuite on applique les locaux par-dessus si plus récents, ou si nouveaux
+  local.forEach(t => {
+    if(!byId[t.id]){
+      // Nouveau test créé localement → on l'ajoute
+      byId[t.id] = t;
+    } else {
+      // Les deux existent : on garde le plus récent
+      const remoteTs = byId[t.id].updatedAt || 0;
+      const localTs  = t.updatedAt || 0;
+      if(localTs >= remoteTs) byId[t.id] = t;
+    }
+  });
+  return Object.values(byId);
+}
+
 async function persist(){
-  // Always save locally as fallback
   try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
-  if(currentAccount){
-    setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
-    const ok = await saveToSharePoint(SP_CONFIG.testsFile, tests);
-    setSyncMsg(ok
-      ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
-      : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+  if(!currentAccount){ render(); return; }
+  if(_saving){ return; } // évite les sauvegardes concurrentes locales
+  _saving = true;
+  setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
+  try{
+    const token = await getToken();
+    if(token){
+      // 1. Relire la version distante actuelle
+      const res = await fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}});
+      const remote = res.ok ? await res.json() : [];
+      // 2. Fusionner avec nos changements locaux
+      const merged = mergeTests(tests, remote);
+      tests = merged;
+      try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
+      // 3. Écrire la version fusionnée
+      const ok = await saveToSharePoint(SP_CONFIG.testsFile, tests);
+      setSyncMsg(ok
+        ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
+        : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+    }
+  }catch(e){
+    setSyncMsg('<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+  }finally{
+    _saving = false;
     setTimeout(()=>setSyncMsg(''), 3000);
   }
   render();
@@ -576,19 +621,51 @@ async function persist(){
 async function persistCerts(){
   try{localStorage.setItem('lab_certs_v1',JSON.stringify(certifications));}catch(e){}
   try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
-  if(currentAccount){
-    setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
-    const [ok1, ok2] = await Promise.all([
-      saveToSharePoint(SP_CONFIG.certsFile, certifications),
-      saveToSharePoint(SP_CONFIG.testsFile, tests)
-    ]);
-    setSyncMsg((ok1&&ok2)
-      ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
-      : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+  if(!currentAccount){ updateCertFilter(); render(); return; }
+  setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
+  try{
+    const token = await getToken();
+    if(token){
+      const [ok1, ok2] = await Promise.all([
+        saveToSharePoint(SP_CONFIG.certsFile, certifications),
+        saveToSharePoint(SP_CONFIG.testsFile, tests)
+      ]);
+      setSyncMsg((ok1&&ok2)
+        ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
+        : '<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+    }
+  }catch(e){
+    setSyncMsg('<i class="ti ti-alert-circle" style="color:var(--warning);vertical-align:-2px;"></i> Erreur sync');
+  }finally{
     setTimeout(()=>setSyncMsg(''), 3000);
   }
   updateCertFilter();
   render();
+}
+
+// Polling toutes les 30s : recharge le JSON distant et fusionne silencieusement
+let _pollInterval = null;
+function startPolling(){
+  if(_pollInterval) return;
+  _pollInterval = setInterval(async ()=>{
+    if(!currentAccount || _saving) return;
+    try{
+      const token = await getToken(); if(!token) return;
+      const res = await fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}});
+      if(!res.ok) return;
+      const remote = await res.json();
+      const before = JSON.stringify(tests);
+      tests = mergeTests(tests, remote);
+      const after = JSON.stringify(tests);
+      if(before !== after){
+        // Des changements distants ont été détectés
+        try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
+        render();
+        setSyncMsg('<i class="ti ti-refresh" style="color:var(--info);vertical-align:-2px;"></i> Mis à jour');
+        setTimeout(()=>setSyncMsg(''), 2000);
+      }
+    }catch(e){}
+  }, 30000);
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
@@ -824,6 +901,7 @@ function saveEdit(id){
   t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
   t.certIds=certifications.filter(c=>document.getElementById('e-cert-'+c.id+'-'+id)?.checked).map(c=>c.id);
   t.deliverables=[...(editingCards[id]?.deliverables||[])];
+  t.updatedAt=Date.now();
   delete editingCards[id];
   persist();
   toast('Test mis à jour.','success');
@@ -917,7 +995,8 @@ function saveNew(){
     material:document.getElementById('f-material').value.trim(),
     description:document.getElementById('f-desc').value.trim(),
     deliverables:[...tempD],
-    certIds, isRnD
+    certIds, isRnD,
+    updatedAt: Date.now()
   });
   closeModal();persist();toast('Test créé.','success');
 }

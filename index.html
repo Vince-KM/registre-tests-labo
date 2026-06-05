@@ -585,23 +585,24 @@ function mergeTests(local, remote){
   return Object.values(byId);
 }
 
-async function persist(){
+async function persist(skipMerge=false){
   try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
   if(!currentAccount){ render(); return; }
-  if(_saving){ return; } // évite les sauvegardes concurrentes locales
+  // Si une sauvegarde est déjà en cours et qu'on ne bypass pas, on attend
+  if(_saving && !skipMerge){ render(); return; }
   _saving = true;
   setSyncMsg('<span class="sync-spinner"></span>Sauvegarde…');
   try{
     const token = await getToken();
     if(token){
-      // 1. Relire la version distante actuelle
-      const res = await fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}});
-      const remote = res.ok ? await res.json() : [];
-      // 2. Fusionner avec nos changements locaux
-      const merged = mergeTests(tests, remote);
-      tests = merged;
-      try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
-      // 3. Écrire la version fusionnée
+      if(!skipMerge){
+        // Lecture + merge (pour les créations/modifications)
+        const res = await fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}});
+        const remote = res.ok ? await res.json() : [];
+        tests = mergeTests(tests, remote);
+        try{localStorage.setItem('lab_tests_v3',JSON.stringify(tests));}catch(e){}
+      }
+      // Écriture directe (toujours)
       const ok = await saveToSharePoint(SP_CONFIG.testsFile, tests);
       setSyncMsg(ok
         ? '<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé'
@@ -1039,7 +1040,7 @@ async function del(id){
     }
   }
 
-  await persist();
+  await persist(true); // skipMerge : on écrit directement sans relire le distant
   toast('Test supprimé.','info');
 }
 

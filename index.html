@@ -988,52 +988,86 @@ async function deleteByItemId(itemId, testId, fileName){
     if(t) t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
     await persist();
     toast('Fichier supprimé.','info');
-    refreshAttList(testId); // recharge la liste
+    delete _attCache[testId]; // invalide le cache
+    refreshAttList(testId);
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
 }
 
-// Recharge et réaffiche la liste des pièces jointes d'un test
-async function refreshAttList(testId){
-  const t=tests.find(x=>x.id===testId); if(!t) return;
-  const el=document.getElementById('attlist-'+testId); if(!el) return;
+// Cache mémoire des listings de dossiers : { testId: { items, ts } }
+const _attCache = {};
+const ATT_CACHE_TTL = 30000; // 30s — au-delà on revalide en arrière-plan
 
-  el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement des fichiers SharePoint…</div>`;
-
-  if(!currentAccount){
-    // Pas connecté : affiche uniquement les fichiers base64 locaux
-    el.innerHTML=renderLocalAtts(t);
-    return;
-  }
-
-  const items=await listSpFolder(t.name);
-
-  if(items===null){
-    el.innerHTML=`<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire le dossier SharePoint.</div>`+renderLocalAtts(t);
-    return;
-  }
-
-  if(items.length===0 && !(t.attachments||[]).filter(a=>a.data).length){
-    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun fichier dans ce dossier.</div>`;
-    return;
-  }
-
-  // Fichiers live depuis SharePoint
-  const spHtml=items.map(item=>{
+// Rendu HTML d'une liste de driveItems
+function renderSpItems(items, testId){
+  if(!items.length) return '';
+  return items.map(item=>{
     const dt=new Date(item.lastModifiedDateTime).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const nameSafe=esc(item.name).replace(/'/g,"\\'");
     return `<div class="att-item">
       <span class="att-icon">${fileIcon(item.name)}</span>
       <div class="att-info">
         <div class="att-name">${esc(item.name)}</div>
         <div class="att-meta">${fmt(item.size)} · <i class="ti ti-clock" style="font-size:11px;vertical-align:-1px;"></i> ${dt} · <i class="ti ti-cloud" style="font-size:11px;vertical-align:-1px;color:var(--accent);"></i> SharePoint</div>
       </div>
-      <button class="att-dl" onclick="downloadByItemId('${item.id}','${esc(item.name)}')" title="Télécharger la version actuelle"><i class="ti ti-download"></i></button>
-      <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${esc(item.name)}')" title="Supprimer"><i class="ti ti-x"></i></button>
+      <button class="att-dl" onclick="downloadByItemId('${item.id}','${nameSafe}')" title="Télécharger la version actuelle"><i class="ti ti-download"></i></button>
+      <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${nameSafe}')" title="Supprimer"><i class="ti ti-x"></i></button>
     </div>`;
   }).join('');
+}
 
-  // Fichiers base64 locaux (anciens, pas encore sur SP)
-  const localHtml=renderLocalAtts(t);
-  el.innerHTML=spHtml+localHtml;
+// Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire
+async function refreshAttList(testId, forceRefresh){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  const el=document.getElementById('attlist-'+testId); if(!el) return;
+
+  if(!currentAccount){
+    el.innerHTML=renderLocalAtts(t);
+    return;
+  }
+
+  const cached=_attCache[testId];
+  const now=Date.now();
+  const stale=!cached || (now - cached.ts > ATT_CACHE_TTL);
+
+  // --- Affichage immédiat depuis le cache ---
+  if(cached && !forceRefresh){
+    el.innerHTML=renderSpItems(cached.items, testId)+renderLocalAtts(t);
+    // Indicateur discret si le cache est périmé (revalidation en cours)
+    if(stale){
+      const hint=document.createElement('div');
+      hint.id='att-hint-'+testId;
+      hint.style.cssText='font-size:11px;color:var(--text3);padding:4px 4px 0;display:flex;align-items:center;gap:5px;';
+      hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
+      el.appendChild(hint);
+    } else {
+      return; // Cache frais → rien à faire
+    }
+  } else {
+    // Pas de cache : spinner plein écran uniquement au premier chargement
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
+  }
+
+  // --- Appel Graph en arrière-plan ---
+  const items=await listSpFolder(t.name);
+
+  if(items===null){
+    if(!cached){
+      el.innerHTML=`<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire le dossier SharePoint.</div>`+renderLocalAtts(t);
+    } else {
+      // Garde l'affichage actuel, retire juste le spinner
+      document.getElementById('att-hint-'+testId)?.remove();
+    }
+    return;
+  }
+
+  // Met à jour le cache
+  _attCache[testId]={ items, ts:Date.now() };
+
+  // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)
+  const elNow=document.getElementById('attlist-'+testId);
+  if(elNow){
+    elNow.innerHTML=renderSpItems(items, testId)+renderLocalAtts(t);
+  }
 }
 
 // Rendu des pièces jointes base64 locales (rétrocompatibilité)
@@ -1170,6 +1204,7 @@ async function handleUpload(e, testId){
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé');
     setTimeout(()=>setSyncMsg(''),3000);
     toast(done+' fichier'+(done>1?'s':'')+' uploadé'+(done>1?'s':'')+' sur SharePoint.','success');
+    delete _attCache[testId]; // invalide le cache
     refreshAttList(testId);
   } else {
     setSyncMsg('');

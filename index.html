@@ -1152,19 +1152,30 @@ function saveEdit(id){
   // Renommage du dossier SharePoint si le nom a changé
   if(oldName !== name && currentAccount){
     (async()=>{
-      // S'assure d'avoir un spFolderId avant de renommer
-      if(!t.spFolderId){
-        const token = await getToken();
-        if(token) t.spFolderId = await ensureSpFolder(oldName, token) || await ensureSpFolder(name, token);
-      }
-      if(t.spFolderId){
-        const ok = await renameSpFolder(t.spFolderId, name);
-        if(ok){
-          delete _attCache[id]; // invalide le cache
-          toast('Dossier SharePoint renommé.','success');
-        } else {
-          toast('Test mis à jour — dossier SharePoint non renommé (il faudra le faire manuellement).','info');
+      const token = await getToken();
+      if(token){
+        // 1. Récupère l'ID du dossier de l'ANCIEN nom
+        if(!t.spFolderId){
+          // Cherche uniquement par l'ancien chemin — ne crée rien
+          try{
+            const res = await fetch(`${driveBase()}/root:/${attFolderPath(oldName)}`, {
+              headers:{Authorization:`Bearer ${token}`}
+            });
+            if(res.ok){ const meta = await res.json(); t.spFolderId = meta.id; }
+          }catch(e){}
         }
+
+        if(t.spFolderId){
+          // 2. Renomme le dossier existant → conserve tout son contenu
+          const ok = await renameSpFolder(t.spFolderId, name);
+          if(ok){
+            delete _attCache[id];
+            toast('Dossier SharePoint renommé — pièces jointes conservées.','success');
+          } else {
+            toast('Test mis à jour — renommage du dossier SharePoint échoué.','danger');
+          }
+        }
+        // Si pas de dossier (aucun fichier jamais uploadé) → rien à renommer, c'est normal
       }
       await persist();
       setTimeout(()=>{ refreshAttList(id); },50);

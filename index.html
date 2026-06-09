@@ -54,11 +54,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn.sm{padding:6px 12px;font-size:12px;}
 .btn.xs{padding:4px 10px;font-size:11px;}
 /* Boutons hors header — thème clair */
-.card-actions .btn,.edit-actions .btn,.modal-footer .btn{border-color:var(--border2);background:var(--bg3);color:var(--text);}
-.card-actions .btn:hover,.edit-actions .btn:hover,.modal-footer .btn:hover{background:var(--bg4);}
-.card-actions .btn.primary,.edit-actions .btn.primary,.modal-footer .btn.primary{background:linear-gradient(135deg,#6b6ee8,#a78be8);border-color:transparent;color:#fff;}
+.card-actions .btn,.edit-actions .btn,.modal-footer .btn,
+.edit-form .btn,.modal-body .btn,.deliv-add .btn,.deliv-row .btn{
+  border-color:var(--border2);background:var(--bg3);color:var(--text);backdrop-filter:none;
+}
+.card-actions .btn:hover,.edit-actions .btn:hover,.modal-footer .btn:hover,
+.edit-form .btn:hover,.modal-body .btn:hover,.deliv-add .btn:hover,.deliv-row .btn:hover{background:var(--bg4);}
+.card-actions .btn.primary,.edit-actions .btn.primary,.modal-footer .btn.primary,
+.edit-form .btn.primary,.modal-body .btn.primary{background:linear-gradient(135deg,#6b6ee8,#a78be8);border-color:transparent;color:#fff;}
 .card-actions .btn.success,.edit-actions .btn.success{background:var(--success);border-color:transparent;color:#fff;}
 .card-actions .btn.success:hover,.edit-actions .btn.success:hover{opacity:.88;}
+.card-actions .btn.ghost,.edit-actions .btn.ghost,.modal-footer .btn.ghost,
+.edit-form .btn.ghost,.modal-body .btn.ghost{background:transparent;border-color:transparent;color:var(--text2);}
+.card-actions .btn.ghost:hover,.edit-actions .btn.ghost:hover,.modal-footer .btn.ghost:hover,
+.edit-form .btn.ghost:hover,.modal-body .btn.ghost:hover{background:var(--bg3);color:var(--text);}
+.card-actions .btn.danger-ghost,.edit-actions .btn.danger-ghost{background:transparent;border-color:transparent;color:var(--danger);}
+.card-actions .btn.danger-ghost:hover,.edit-actions .btn.danger-ghost:hover{background:var(--danger-dim);}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--text2);}
 .btn.ghost:hover{background:var(--bg3);color:var(--text);}
 .btn.danger-ghost{background:transparent;border-color:transparent;color:var(--danger);}

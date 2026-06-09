@@ -1131,6 +1131,7 @@ function saveEdit(id){
     setTimeout(()=>{inp.style.borderColor='';inp.style.boxShadow='';},3000);
     return;
   }
+  const oldName = t.name;
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
   t.status=document.getElementById('e-status-'+id)?.value||'pending';
@@ -1147,13 +1148,37 @@ function saveEdit(id){
   t.deliverables=[...(editingCards[id]?.deliverables||[])];
   t.updatedAt=Date.now();
   delete editingCards[id];
-  persist();
+
+  // Renommage du dossier SharePoint si le nom a changé
+  if(oldName !== name && currentAccount){
+    (async()=>{
+      // S'assure d'avoir un spFolderId avant de renommer
+      if(!t.spFolderId){
+        const token = await getToken();
+        if(token) t.spFolderId = await ensureSpFolder(oldName, token) || await ensureSpFolder(name, token);
+      }
+      if(t.spFolderId){
+        const ok = await renameSpFolder(t.spFolderId, name);
+        if(ok){
+          delete _attCache[id]; // invalide le cache
+          toast('Dossier SharePoint renommé.','success');
+        } else {
+          toast('Test mis à jour — dossier SharePoint non renommé (il faudra le faire manuellement).','info');
+        }
+      }
+      await persist();
+      setTimeout(()=>{ refreshAttList(id); },50);
+    })();
+  } else {
+    persist();
+  }
+
   toast('Test mis à jour.','success');
   setTimeout(()=>{
     const body=document.getElementById('body-'+id);
     const card=document.getElementById('card-'+id);
     if(body){body.classList.add('open');card.classList.add('expanded');}
-    refreshAttList(id);
+    if(oldName === name) refreshAttList(id);
   },50);
 }
 
@@ -1325,18 +1350,76 @@ function attFolderPath(testName){ return `${SP_CONFIG.folderPath}/Attachments/${
 function attFilePath(testName, fileName){ return `${attFolderPath(testName)}/${fileName}`; }
 
 // Liste les fichiers présents dans le dossier SharePoint du test (lecture live)
-async function listSpFolder(testName){
+// Utilise spFolderId si disponible (stable), sinon fallback par nom de dossier
+async function listSpFolder(testName, spFolderId){
   const token=await getToken(); if(!token) return null;
-  const folderPath=attFolderPath(testName);
   try{
-    const res=await fetch(
-      spFolderChildren(folderPath),
-      {headers:{Authorization:`Bearer ${token}`}}
-    );
-    if(res.status===404) return []; // dossier pas encore créé
+    let url;
+    if(spFolderId){
+      url = `${spItemUrl(spFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`;
+    } else {
+      url = spFolderChildren(attFolderPath(testName));
+    }
+    const res=await fetch(url, {headers:{Authorization:`Bearer ${token}`}});
+    if(res.status===404) return [];
     if(!res.ok) return null;
     const json=await res.json();
-    return (json.value||[]).filter(i=>i.file); // uniquement les fichiers, pas les sous-dossiers
+    return (json.value||[]).filter(i=>i.file);
+  }catch(e){ return null; }
+}
+
+// Récupère ou crée le dossier SharePoint d'un test, retourne son ID Graph
+async function ensureSpFolder(testName, token){
+  const folderPath = attFolderPath(testName);
+  try{
+    // Essai lecture directe
+    const res = await fetch(`${driveBase()}/root:/${folderPath}`, {
+      headers:{Authorization:`Bearer ${token}`}
+    });
+    if(res.ok){
+      const meta = await res.json();
+      return meta.id;
+    }
+    // Dossier absent : création
+    const parentPath = `${SP_CONFIG.folderPath}/Attachments`;
+    const createRes = await fetch(`${driveBase()}/root:/${parentPath}:/children`, {
+      method:'POST',
+      headers:{Authorization:`Bearer ${token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({ name: slugifyTestName(testName), folder:{}, '@microsoft.graph.conflictBehavior':'rename' })
+    });
+    if(createRes.ok){
+      const created = await createRes.json();
+      return created.id;
+    }
+  }catch(e){}
+  return null;
+}
+
+// Renomme le dossier SharePoint d'un test via son ID stable
+async function renameSpFolder(spFolderId, newTestName){
+  if(!spFolderId || !currentAccount) return false;
+  const token = await getToken(); if(!token) return false;
+  try{
+    const res = await fetch(spItemUrl(spFolderId), {
+      method:'PATCH',
+      headers:{Authorization:`Bearer ${token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({ name: slugifyTestName(newTestName) })
+    });
+    return res.ok;
+  }catch(e){ return false; }
+}
+
+// Lit le vrai nom du dossier SharePoint via son ID (pour détecter un renommage externe)
+async function getSpFolderName(spFolderId){
+  if(!spFolderId || !currentAccount) return null;
+  const token = await getToken(); if(!token) return null;
+  try{
+    const res = await fetch(`${spItemUrl(spFolderId)}?$select=name`, {
+      headers:{Authorization:`Bearer ${token}`}
+    });
+    if(!res.ok) return null;
+    const json = await res.json();
+    return json.name || null;
   }catch(e){ return null; }
 }
 
@@ -1434,7 +1517,7 @@ async function refreshAttList(testId, forceRefresh){
   }
 
   // --- Appel Graph en arrière-plan ---
-  const items=await listSpFolder(t.name);
+  const items=await listSpFolder(t.name, t.spFolderId);
 
   if(items===null){
     if(!cached){
@@ -1580,6 +1663,10 @@ async function handleUpload(e, testId){
 
   // Avec connexion : upload dans Labo/Attachments/<slug-test>/
   const token=await getToken(); if(!token){ toast('Impossible d\'obtenir le token.','danger'); return; }
+  // S'assure que le dossier existe et récupère son ID stable
+  if(!t.spFolderId){
+    t.spFolderId = await ensureSpFolder(t.name, token);
+  }
   const folderPath=attFolderPath(t.name);
   setSyncMsg('<span class="sync-spinner"></span>Upload en cours…');
 

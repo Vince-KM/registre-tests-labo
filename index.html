@@ -296,60 +296,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="auth-bar" id="auth-bar">
     <div class="auth-dot orange" id="auth-dot"></div>
     <span id="auth-status">Non connecté</span>
-    <span id="auth-shared-badge" style="display:none;background:rgba(79,123,255,.15);color:var(--accent);font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;border:1px solid rgba(79,123,255,.25);"><i class="ti ti-users" style="font-size:11px;vertical-align:-1px;"></i> Drive partagé</span>
     <span class="auth-spacer"></span>
     <span id="auth-sync-msg"></span>
-    <button class="btn xs ghost" onclick="openDriveConfig()" title="Configurer le drive partagé"><i class="ti ti-settings"></i></button>
     <button class="btn xs" id="auth-btn" onclick="authAction()"><i class="ti ti-login"></i> Se connecter</button>
   </div>
 
-<!-- MODAL CONFIG DRIVE PARTAGÉ -->
-<div class="overlay hidden" id="drive-config-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2><i class="ti ti-users" style="color:var(--accent);font-size:18px;"></i> Configuration du drive partagé</h2>
-      <button class="modal-close" onclick="closeDriveConfig()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7;">
-        Par défaut, chaque utilisateur lit et écrit dans <strong>son propre OneDrive</strong>. Pour partager les données avec toute l'équipe, configurez un <strong>drive commun</strong> ci-dessous.
-      </p>
-
-      <!-- OPTION A -->
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;"><i class="ti ti-user" style="font-size:13px;vertical-align:-2px;"></i> Option A — Dossier partagé dans un OneDrive</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
-          Partagez le dossier <code style="background:var(--bg4);padding:1px 6px;border-radius:4px;font-family:var(--mono);">Labo/</code> de votre OneDrive avec l'équipe, puis récupérez les IDs via :<br>
-          <code style="background:var(--bg4);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;display:block;margin-top:6px;">GET https://graph.microsoft.com/v1.0/me/drive/root:/Labo</code>
-        </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="field"><label>Drive ID <small style="color:var(--text3)">(parentReference.driveId)</small></label><input type="text" id="cfg-drive-id" placeholder="b!AbCdEf…" style="font-family:var(--mono);font-size:12px;"/></div>
-          <div class="field"><label>Item ID du dossier Labo <small style="color:var(--text3)">(id)</small></label><input type="text" id="cfg-item-id" placeholder="01ABCDEF…" style="font-family:var(--mono);font-size:12px;"/></div>
-        </div>
-      </div>
-
-      <!-- OPTION B -->
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:600;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;"><i class="ti ti-building" style="font-size:13px;vertical-align:-2px;"></i> Option B — Site SharePoint d'équipe</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
-          Récupérez l'ID du drive du site via :<br>
-          <code style="background:var(--bg4);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;display:block;margin-top:6px;">GET https://graph.microsoft.com/v1.0/sites?search=&lt;nom-site&gt;</code>
-          puis <code style="background:var(--bg4);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:11px;">GET /sites/{siteId}/drives</code>.<br>
-          Laissez l'<em>Item ID</em> vide pour cette option.
-        </p>
-        <div class="field"><label>Drive ID du site SharePoint</label><input type="text" id="cfg-drive-id-b" placeholder="b!XyZAbC… (drive ID du site)" style="font-family:var(--mono);font-size:12px;"/></div>
-      </div>
-
-      <div id="cfg-status" style="font-size:12px;padding:8px 12px;border-radius:var(--radius);display:none;margin-bottom:4px;"></div>
-      <p style="font-size:11px;color:var(--text3);margin-top:8px;"><i class="ti ti-info-circle" style="vertical-align:-2px;"></i> Ces paramètres sont sauvegardés dans le localStorage de votre navigateur. Chaque membre de l'équipe doit les configurer une fois.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn ghost" onclick="clearDriveConfig()"><i class="ti ti-trash"></i> Réinitialiser</button>
-      <button class="btn ghost" onclick="closeDriveConfig()">Annuler</button>
-      <button class="btn primary" onclick="saveDriveConfig()"><i class="ti ti-check"></i> Enregistrer &amp; recharger</button>
-    </div>
-  </div>
-</div>
   <div class="header">
     <div>
       <div class="logo"><div class="logo-dot"></div><h1>Registre des Tests</h1></div>
@@ -391,8 +342,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <div class="test-list" id="test-list"></div>
 </div>
-
-<!-- MODAL NOUVEAU TEST -->
 <div class="overlay hidden" id="overlay">
   <div class="modal">
     <div class="modal-header">
@@ -500,62 +449,6 @@ const SP_CONFIG = {
   sharedItemId  : '',
 };
 
-// Charge la config partagée depuis localStorage (priorité sur les valeurs hardcodées)
-(function loadDriveConfig(){
-  try{
-    const saved = JSON.parse(localStorage.getItem('lab_drive_config')||'{}');
-    if(saved.sharedDriveId) SP_CONFIG.sharedDriveId = saved.sharedDriveId;
-    if(saved.sharedItemId)  SP_CONFIG.sharedItemId  = saved.sharedItemId;
-  }catch(e){}
-})();
-
-/* ---- MODAL CONFIG DRIVE ---- */
-function openDriveConfig(){
-  document.getElementById('cfg-drive-id').value   = SP_CONFIG.sharedDriveId || '';
-  document.getElementById('cfg-item-id').value    = SP_CONFIG.sharedItemId  || '';
-  document.getElementById('cfg-drive-id-b').value = SP_CONFIG.sharedDriveId && !SP_CONFIG.sharedItemId ? SP_CONFIG.sharedDriveId : '';
-  document.getElementById('cfg-status').style.display='none';
-  document.getElementById('drive-config-overlay').classList.remove('hidden');
-}
-function closeDriveConfig(){ document.getElementById('drive-config-overlay').classList.add('hidden'); }
-function clearDriveConfig(){
-  if(!confirm('Réinitialiser la configuration du drive partagé ? L\'app reviendra en mode OneDrive personnel.')) return;
-  localStorage.removeItem('lab_drive_config');
-  SP_CONFIG.sharedDriveId = '';
-  SP_CONFIG.sharedItemId  = '';
-  closeDriveConfig();
-  updateSharedBadge();
-  toast('Configuration réinitialisée — mode OneDrive personnel.','info');
-}
-function saveDriveConfig(){
-  // Priorité à Option A si les deux champs sont remplis
-  const driveA = (document.getElementById('cfg-drive-id').value||'').trim();
-  const itemA  = (document.getElementById('cfg-item-id').value||'').trim();
-  const driveB = (document.getElementById('cfg-drive-id-b').value||'').trim();
-
-  const driveId = driveA || driveB;
-  const itemId  = driveA ? itemA : '';
-
-  if(!driveId){
-    const el=document.getElementById('cfg-status');
-    el.style.display='block';
-    el.style.background='var(--danger-dim)';el.style.color='var(--danger)';
-    el.textContent='⚠ Veuillez saisir au moins un Drive ID.';
-    return;
-  }
-  SP_CONFIG.sharedDriveId = driveId;
-  SP_CONFIG.sharedItemId  = itemId;
-  try{ localStorage.setItem('lab_drive_config', JSON.stringify({sharedDriveId:driveId, sharedItemId:itemId})); }catch(e){}
-  closeDriveConfig();
-  updateSharedBadge();
-  toast('Configuration enregistrée — rechargement…','success');
-  // Recharge les données depuis le nouveau drive
-  setTimeout(()=>loadFromSharePoint(), 400);
-}
-function updateSharedBadge(){
-  const badge=document.getElementById('auth-shared-badge');
-  if(badge) badge.style.display = SP_CONFIG.sharedDriveId ? 'inline-flex' : 'none';
-}
 
 let msalInstance = null;
 let currentAccount = null;
@@ -598,7 +491,6 @@ function setAuthBar(connected, name){
     status.textContent = 'Non connecté — données locales uniquement';
     btn.innerHTML = '<i class="ti ti-login"></i> Se connecter';
   }
-  updateSharedBadge();
 }
 
 function setSyncMsg(msg){
@@ -1659,8 +1551,7 @@ function exportPDF(){
 /* ---- EVENTS ---- */
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
-document.getElementById('drive-config-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('drive-config-overlay'))closeDriveConfig();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeDriveConfig();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();}});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser
 function waitForMsal(attempts){

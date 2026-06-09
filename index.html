@@ -469,8 +469,14 @@ async function initMsal(){
   msalInstance = new msal.PublicClientApplication(config);
   // MSAL v3 requiert initialize() avant tout appel
   await msalInstance.initialize();
-  // Gère le retour de redirect si utilisé
-  await msalInstance.handleRedirectPromise().catch(()=>{});
+  // Gère le retour de redirect (login ou logout)
+  const redirectResult = await msalInstance.handleRedirectPromise().catch(()=>null);
+  if(redirectResult && redirectResult.account){
+    currentAccount = redirectResult.account;
+    setAuthBar(true, currentAccount.name || currentAccount.username);
+    loadFromSharePoint();
+    return;
+  }
   const accounts = msalInstance.getAllAccounts();
   if(accounts.length > 0){
     currentAccount = accounts[0];
@@ -504,9 +510,15 @@ function setSyncMsg(msg){
 
 async function authAction(){
   if(currentAccount){
-    msalInstance.logoutPopup();
-    currentAccount = null;
-    setAuthBar(false);
+    try{
+      await msalInstance.logoutRedirect({ account: currentAccount, postLogoutRedirectUri: window.location.href });
+    } catch(e){
+      // fallback : vide le cache manuellement
+      sessionStorage.clear();
+      currentAccount = null;
+      setAuthBar(false);
+      render();
+    }
     return;
   }
   try{
@@ -514,7 +526,14 @@ async function authAction(){
     currentAccount = res.account;
     setAuthBar(true, currentAccount.name || currentAccount.username);
     loadFromSharePoint();
-  } catch(e){ toast('Connexion annulée ou échouée.','danger'); }
+  } catch(e){
+    // Si popup bloquée, essayer redirect
+    if(e.errorCode === 'popup_window_error' || e.errorCode === 'empty_window_error'){
+      msalInstance.loginRedirect({scopes:['Files.ReadWrite','Sites.ReadWrite.All']});
+    } else {
+      toast('Connexion annulée ou échouée : ' + (e.message||e), 'danger');
+    }
+  }
 }
 
 async function getToken(){

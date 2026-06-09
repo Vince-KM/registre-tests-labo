@@ -909,7 +909,12 @@ function filtered(){
 
 function render(){
   let totalDays=0,totalDeliv=0,totalFiles=0;
-  tests.forEach(t=>{totalDays+=parseFloat(t.days||0);totalDeliv+=(t.deliverables||[]).length;totalFiles+=(t.attachments||[]).length;});
+  tests.forEach(t=>{
+    totalDays+=parseFloat(t.days||0);
+    totalDeliv+=(t.deliverables||[]).length;
+    // Utilise le vrai compte SharePoint si disponible, sinon le JSON local
+    totalFiles += _attCount[t.id] !== undefined ? _attCount[t.id] : (t.attachments||[]).length;
+  });
   document.getElementById('s-total').textContent=tests.length;
   document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
   document.getElementById('s-deliv').textContent=totalDeliv;

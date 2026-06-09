@@ -306,6 +306,39 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   .app>div:last-of-type{padding:0 20px;}
 }
 
+/* BARRE DE PROGRESSION */
+.progress-wrap{background:var(--navy);padding:0 40px 20px;margin-bottom:0;}
+.progress-bar-block{max-width:960px;margin:0 auto;}
+.progress-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.progress-bar-title{font-family:var(--title);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);}
+.progress-bar-pct{font-family:var(--title);font-size:13px;font-weight:700;color:#fff;}
+.progress-track{height:10px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;display:flex;gap:2px;}
+.progress-seg{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.progress-seg.seg-done{background:linear-gradient(90deg,#34d399,#059669);}
+.progress-seg.seg-progress{background:linear-gradient(90deg,#60c8f5,#0284c7);}
+.progress-seg.seg-fail{background:linear-gradient(90deg,#f87171,#e11d48);}
+.progress-seg.seg-pending{background:rgba(255,255,255,.15);}
+.progress-legend{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;}
+.progress-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.5);}
+.progress-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.progress-legend-item strong{color:rgba(255,255,255,.85);font-weight:600;}
+
+/* FAIL CLASS CHIP */
+.chip-fail-a{background:rgba(251,191,36,.15);color:#fbbf24;}
+.chip-fail-b{background:rgba(249,115,22,.15);color:#f97316;}
+.chip-fail-c{background:rgba(225,29,72,.15);color:#e11d48;}
+
+/* DOMAINE CHIP */
+.chip-domain{background:rgba(107,110,232,.12);color:var(--accent);border:1px solid rgba(107,110,232,.2);}
+
+/* FAIL CLASS FIELD */
+.fail-class-row{display:flex;gap:8px;margin-top:6px;}
+.fail-class-btn{flex:1;padding:8px 4px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--title);font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:all .18s;}
+.fail-class-btn:hover{border-color:var(--accent);color:var(--accent);}
+.fail-class-btn.selected-a{background:rgba(251,191,36,.15);border-color:#fbbf24;color:#d97706;}
+.fail-class-btn.selected-b{background:rgba(249,115,22,.15);border-color:#f97316;color:#ea580c;}
+.fail-class-btn.selected-c{background:rgba(225,29,72,.15);border-color:#e11d48;color:#e11d48;}
+
 /* AUTH BAR */
 .auth-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(255,255,255,.08);border:none;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.6);}
 .auth-bar .auth-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -353,6 +386,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="stat success"><div class="stat-icon"><i class="ti ti-checklist" style="color:var(--success)"></i></div><div class="stat-value" id="s-deliv">0</div><div class="stat-label">Livrables</div></div>
     <div class="stat info"><div class="stat-icon"><i class="ti ti-paperclip" style="color:var(--info)"></i></div><div class="stat-value" id="s-files">0</div><div class="stat-label">Pièces jointes</div></div>
   </div>
+  <!-- BARRE DE PROGRESSION -->
+  <div class="progress-wrap">
+    <div class="progress-bar-block">
+      <div class="progress-bar-label">
+        <span class="progress-bar-title"><i class="ti ti-chart-bar" style="font-size:12px;vertical-align:-1px;margin-right:5px;"></i>Avancement du programme</span>
+        <span class="progress-bar-pct" id="prog-pct">0%</span>
+      </div>
+      <div class="progress-track" id="prog-track">
+        <div class="progress-seg seg-done" id="prog-done" style="width:0%"></div>
+        <div class="progress-seg seg-progress" id="prog-progress" style="width:0%"></div>
+        <div class="progress-seg seg-fail" id="prog-fail" style="width:0%"></div>
+        <div class="progress-seg seg-pending" id="prog-pending" style="width:100%"></div>
+      </div>
+      <div class="progress-legend">
+        <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#34d399;"></div><strong id="prog-n-done">0</strong> Validé</div>
+        <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#60c8f5;"></div><strong id="prog-n-progress">0</strong> En cours</div>
+        <div class="progress-legend-item"><div class="progress-legend-dot" style="background:#f87171;"></div><strong id="prog-n-fail">0</strong> Échec</div>
+        <div class="progress-legend-item"><div class="progress-legend-dot" style="background:rgba(255,255,255,.2);"></div><strong id="prog-n-pending">0</strong> En attente</div>
+      </div>
+    </div>
+  </div>
   </div>
 
   <div class="toolbar-wrap">
@@ -394,11 +448,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <select id="f-type"><option value="">— Sélectionner —</option><option>Caractérisation électrique</option><option>Test thermique</option><option>Test de vieillissement</option><option>Test de protection / fault</option><option>Test de communication</option><option>Test mécanique</option><option>Validation système</option><option>Autre</option></select>
         </div>
         <div class="field"><label>Statut</label>
-          <select id="f-status"><option value="pending">En attente</option><option value="progress">En cours</option><option value="done">Validé</option><option value="fail">Échec</option></select>
+          <select id="f-status" onchange="toggleFailClass('f',this.value)"><option value="pending">En attente</option><option value="progress">En cours</option><option value="done">Validé</option><option value="fail">Échec</option></select>
         </div>
         <div class="field"><label>Date de début prévue</label><input type="date" id="f-date"/></div>
         <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend"/></div>
         <div class="field full"><label>Nombre de jours prévus</label><input type="number" id="f-days" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="field full"><label>Domaine d'application</label><input type="text" id="f-domain" placeholder="Ex : Automotive, BESS, Marine, Industrie, Ferroviaire…"/></div>
+        <div class="field full" id="f-failclass-row" style="display:none;">
+          <label>Classe d'échec</label>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
+          <div class="fail-class-row">
+            <button type="button" class="fail-class-btn" id="f-fc-a" onclick="selectFailClass('f','A')">A — Mineure</button>
+            <button type="button" class="fail-class-btn" id="f-fc-b" onclick="selectFailClass('f','B')">B — Majeure</button>
+            <button type="button" class="fail-class-btn" id="f-fc-c" onclick="selectFailClass('f','C')">C — Critique</button>
+          </div>
+        </div>
         <div class="field full"><label>Matériel / équipement requis</label><textarea id="f-material" placeholder="Ex : Oscilloscope Tektronix MSO6, charge électronique 600V/100A…"></textarea></div>
         <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
       </div>
@@ -454,6 +518,47 @@ let tempD = [];
 let editingCards = {};
 
 const STATUS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
+
+/* ---- CLASSE ÉCHEC ---- */
+function toggleFailClass(prefix, status){
+  const row = document.getElementById(
+    prefix.startsWith('e-') ? 'e-failclass-row-'+prefix.slice(2) : 'f-failclass-row'
+  );
+  if(row) row.style.display = status==='fail' ? 'block' : 'none';
+}
+
+function selectFailClass(prefix, cls){
+  if(!window._failClassSel) window._failClassSel={};
+  window._failClassSel[prefix] = cls;
+  const idA = prefix==='f' ? 'f-fc-a' : 'e-fc-a-'+prefix.slice(2);
+  const idB = prefix==='f' ? 'f-fc-b' : 'e-fc-b-'+prefix.slice(2);
+  const idC = prefix==='f' ? 'f-fc-c' : 'e-fc-c-'+prefix.slice(2);
+  const btnA=document.getElementById(idA);
+  const btnB=document.getElementById(idB);
+  const btnC=document.getElementById(idC);
+  if(btnA) btnA.className='fail-class-btn'+(cls==='A'?' selected-a':'');
+  if(btnB) btnB.className='fail-class-btn'+(cls==='B'?' selected-b':'');
+  if(btnC) btnC.className='fail-class-btn'+(cls==='C'?' selected-c':'');
+}
+
+/* ---- BARRE DE PROGRESSION ---- */
+function updateProgress(){
+  const total = tests.length;
+  const nDone = tests.filter(t=>t.status==='done').length;
+  const nProg = tests.filter(t=>t.status==='progress').length;
+  const nFail = tests.filter(t=>t.status==='fail').length;
+  const nPend = tests.filter(t=>t.status==='pending').length;
+  const pDone = total ? Math.round(nDone/total*100) : 0;
+  const pProg = total ? Math.round(nProg/total*100) : 0;
+  const pFail = total ? Math.round(nFail/total*100) : 0;
+  const pPend = total ? 100-pDone-pProg-pFail : 100;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.style.width=v+'%';};
+  set('prog-done',pDone); set('prog-progress',pProg); set('prog-fail',pFail); set('prog-pending',Math.max(pPend,0));
+  const pct=document.getElementById('prog-pct');
+  if(pct) pct.textContent=(pDone+pProg)+'% réalisé';
+  const setN=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setN('prog-n-done',nDone); setN('prog-n-progress',nProg); setN('prog-n-fail',nFail); setN('prog-n-pending',nPend);
+}
 const STATUS_CLASS = {pending:'chip-pending',progress:'chip-progress',done:'chip-done',fail:'chip-fail'};
 const TYPE_ICONS = {'Caractérisation électrique':'ti-bolt','Test thermique':'ti-temperature','Test de vieillissement':'ti-clock-hour-4','Test de protection / fault':'ti-shield-check','Test de communication':'ti-antenna','Test mécanique':'ti-tool','Validation système':'ti-circuit-board','Autre':'ti-flask'};
 const TYPE_OPTS = ['Caractérisation électrique','Test thermique','Test de vieillissement','Test de protection / fault','Test de communication','Test mécanique','Validation système','Autre'];
@@ -764,7 +869,7 @@ function filtered(){
     if(fs&&t.status!==fs)return false;
     if(fc==='rnd'&&!t.isRnD)return false;
     if(fc&&fc!=='rnd'&&!(t.certIds||[]).includes(fc))return false;
-    if(q&&!t.name.toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q)&&!(t.type||'').toLowerCase().includes(q))return false;
+    if(q&&!t.name.toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q)&&!(t.type||'').toLowerCase().includes(q)&&!(t.domain||'').toLowerCase().includes(q))return false;
     return true;
   });
 }
@@ -776,6 +881,7 @@ function render(){
   document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
   document.getElementById('s-deliv').textContent=totalDeliv;
   document.getElementById('s-files').textContent=totalFiles;
+  updateProgress();
 
   const list=document.getElementById('test-list');
   const data=filtered();
@@ -817,7 +923,9 @@ function render(){
         </div>
         <div class="card-chips">
           ${t.type?`<span class="chip chip-type">${esc(t.type)}</span>`:''}
+          ${t.domain?`<span class="chip chip-domain"><i class="ti ti-world" style="font-size:11px;"></i> ${esc(t.domain)}</span>`:''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
+          ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
           ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
           ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
           ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
@@ -859,6 +967,10 @@ function renderViewBody(t){
         <div class="info-block"><div class="info-block-label">Date de début</div><div class="info-block-val">${t.dateStart||'—'}</div></div>
         <div class="info-block"><div class="info-block-label">Date de fin</div><div class="info-block-val">${t.dateEnd||'—'}</div></div>
       </div>
+      ${(t.domain||t.failClass)?`<div class="info-row" style="grid-template-columns:repeat(${t.domain&&t.failClass?'2,1fr':'1,1fr'});">
+        ${t.domain?`<div class="info-block"><div class="info-block-label"><i class="ti ti-world" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Domaine d'application</div><div class="info-block-val">${esc(t.domain)}</div></div>`:''}
+        ${t.failClass?`<div class="info-block" style="border-color:${t.failClass==='A'?'rgba(251,191,36,.3)':t.failClass==='B'?'rgba(249,115,22,.3)':'rgba(225,29,72,.3)'};background:${t.failClass==='A'?'rgba(251,191,36,.06)':t.failClass==='B'?'rgba(249,115,22,.06)':'rgba(225,29,72,.06)'};"><div class="info-block-label">Classe d'échec</div><div class="info-block-val" style="color:${t.failClass==='A'?'#d97706':t.failClass==='B'?'#ea580c':'#e11d48'};">Classe ${esc(t.failClass)} — ${t.failClass==='A'?'Mineure':t.failClass==='B'?'Majeure':'Critique'}</div></div>`:''}
+      </div>`:''}
       <div class="section">
         <div class="section-title"><i class="ti ti-certificate" style="font-size:13px;"></i> Appartenance</div>
         <div class="cert-chips-view">${certHtml||`<span class="cert-none">Non assigné</span>`}</div>
@@ -904,10 +1016,20 @@ function renderEditForm(t, delivs){
       <div class="edit-grid">
         <div class="efield full"><label>Nom du test *</label><input type="text" id="e-name-${t.id}" value="${esc(t.name)}" placeholder="Nom du test"/></div>
         <div class="efield"><label>Type de test</label><select id="e-type-${t.id}"><option value="">— Sélectionner —</option>${typeOpts}</select></div>
-        <div class="efield"><label>Statut</label><select id="e-status-${t.id}">${statusOpts}</select></div>
+        <div class="efield"><label>Statut</label><select id="e-status-${t.id}" onchange="toggleFailClass('e-${t.id}',this.value)">${statusOpts}</select></div>
         <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}"/></div>
         <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}"/></div>
         <div class="efield full"><label>Jours prévus</label><input type="number" id="e-days-${t.id}" value="${esc(t.days||'')}" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="efield full"><label>Domaine d'application</label><input type="text" id="e-domain-${t.id}" value="${esc(t.domain||'')}" placeholder="Ex : Automotive, BESS, Marine, Industrie…"/></div>
+        <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
+          <label>Classe d'échec</label>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
+          <div class="fail-class-row">
+            <button type="button" class="fail-class-btn${t.failClass==='A'?' selected-a':''}" id="e-fc-a-${t.id}" onclick="selectFailClass('e-${t.id}','A')">A — Mineure</button>
+            <button type="button" class="fail-class-btn${t.failClass==='B'?' selected-b':''}" id="e-fc-b-${t.id}" onclick="selectFailClass('e-${t.id}','B')">B — Majeure</button>
+            <button type="button" class="fail-class-btn${t.failClass==='C'?' selected-c':''}" id="e-fc-c-${t.id}" onclick="selectFailClass('e-${t.id}','C')">C — Critique</button>
+          </div>
+        </div>
         <div class="efield full"><label>Matériel / équipement requis</label><textarea id="e-material-${t.id}" placeholder="Équipements, instruments de mesure…">${esc(t.material||'')}</textarea></div>
         <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
       </div>
@@ -966,6 +1088,9 @@ function saveEdit(id){
   t.dateStart=document.getElementById('e-date-'+id)?.value||'';
   t.dateEnd=document.getElementById('e-dateend-'+id)?.value||'';
   t.days=document.getElementById('e-days-'+id)?.value||'';
+  t.domain=(document.getElementById('e-domain-'+id)?.value||'').trim();
+  const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
+  t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
   t.material=(document.getElementById('e-material-'+id)?.value||'').trim();
   t.description=(document.getElementById('e-desc-'+id)?.value||'').trim();
   t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
@@ -1033,9 +1158,14 @@ function renderModalCerts(){
 
 function openModal(){
   tempD=[];
-  ['f-name','f-type','f-date','f-dateend','f-days','f-material','f-desc'].forEach(id=>{
+  ['f-name','f-type','f-date','f-dateend','f-days','f-domain','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  if(!window._failClassSel) window._failClassSel={};
+  window._failClassSel['f']='';
+  document.querySelectorAll('#f-fc-a,#f-fc-b,#f-fc-c').forEach(b=>b.className='fail-class-btn');
+  const fcRow=document.getElementById('f-failclass-row');
+  if(fcRow) fcRow.style.display='none';
   document.getElementById('f-status').value='pending';
   document.getElementById('f-deliv-list').innerHTML='';
   renderModalCerts();
@@ -1055,13 +1185,16 @@ function saveNew(){
   if(!name){document.getElementById('f-name').focus();return;}
   const certIds=certifications.filter(c=>document.getElementById('f-cert-'+c.id)?.checked).map(c=>c.id);
   const isRnD=document.getElementById('f-rnd')?.checked||false;
+  const fStatus = document.getElementById('f-status').value;
   tests.push({
     id:uid(), attachments:[], name,
     type:document.getElementById('f-type').value,
-    status:document.getElementById('f-status').value,
+    status:fStatus,
     dateStart:document.getElementById('f-date').value,
     dateEnd:document.getElementById('f-dateend').value,
     days:document.getElementById('f-days').value,
+    domain:(document.getElementById('f-domain').value||'').trim(),
+    failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),
     description:document.getElementById('f-desc').value.trim(),
     deliverables:[...tempD],

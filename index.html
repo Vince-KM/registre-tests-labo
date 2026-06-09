@@ -510,7 +510,7 @@ async function authAction(){
     return;
   }
   try{
-    const res = await msalInstance.loginPopup({scopes:['Files.ReadWrite']});
+    const res = await msalInstance.loginPopup({scopes:['Files.ReadWrite','Sites.ReadWrite.All']});
     currentAccount = res.account;
     setAuthBar(true, currentAccount.name || currentAccount.username);
     loadFromSharePoint();
@@ -521,13 +521,13 @@ async function getToken(){
   if(!currentAccount) return null;
   try{
     const res = await msalInstance.acquireTokenSilent({
-      scopes: ['Files.ReadWrite'],
+      scopes: ['Files.ReadWrite','Sites.ReadWrite.All'],
       account: currentAccount
     });
     return res.accessToken;
   } catch(e){
     try{
-      const res = await msalInstance.acquireTokenPopup({scopes:['Files.ReadWrite']});
+      const res = await msalInstance.acquireTokenPopup({scopes:['Files.ReadWrite','Sites.ReadWrite.All']});
       return res.accessToken;
     } catch(e2){ return null; }
   }

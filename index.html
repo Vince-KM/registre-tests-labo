@@ -1120,6 +1120,17 @@ function saveEdit(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
   const name=(document.getElementById('e-name-'+id)?.value||'').trim();
   if(!name){document.getElementById('e-name-'+id)?.focus();return;}
+  // Vérification doublon (exclut le test en cours d'édition)
+  const duplicate = tests.find(x=>x.id!==id && x.name.trim().toLowerCase()===name.toLowerCase());
+  if(duplicate){
+    const inp=document.getElementById('e-name-'+id);
+    inp.style.borderColor='var(--danger)';
+    inp.style.boxShadow='0 0 0 3px var(--danger-dim)';
+    inp.focus();
+    toast(`Un test nommé "${duplicate.name}" existe déjà. Choisissez un nom différent.`,'danger');
+    setTimeout(()=>{inp.style.borderColor='';inp.style.boxShadow='';},3000);
+    return;
+  }
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
   t.status=document.getElementById('e-status-'+id)?.value||'pending';
@@ -1221,6 +1232,17 @@ function removeD(i){tempD.splice(i,1);renderModalD();}
 function saveNew(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){document.getElementById('f-name').focus();return;}
+  // Vérification doublon
+  const duplicate = tests.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());
+  if(duplicate){
+    const inp=document.getElementById('f-name');
+    inp.style.borderColor='var(--danger)';
+    inp.style.boxShadow='0 0 0 3px var(--danger-dim)';
+    inp.focus();
+    toast(`Un test nommé "${duplicate.name}" existe déjà. Choisissez un nom différent.`,'danger');
+    setTimeout(()=>{inp.style.borderColor='';inp.style.boxShadow='';},3000);
+    return;
+  }
   const certIds=certifications.filter(c=>document.getElementById('f-cert-'+c.id)?.checked).map(c=>c.id);
   const isRnD=document.getElementById('f-rnd')?.checked||false;
   const fStatus = document.getElementById('f-status').value;

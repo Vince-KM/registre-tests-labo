@@ -1642,7 +1642,7 @@ function renderSpItems(items, testId){
         <div class="att-meta">${fmt(item.size)} · <i class="ti ti-clock" style="font-size:11px;vertical-align:-1px;"></i> ${dt} · <i class="ti ti-cloud" style="font-size:11px;vertical-align:-1px;color:var(--accent);"></i> SharePoint</div>
       </div>
       <button class="att-dl" onclick="downloadByItemId('${item.id}','${nameSafe}')" title="Télécharger la version actuelle"><i class="ti ti-download"></i></button>
-      <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${nameSafe}')" title="Supprimer"><i class="ti ti-x"></i></button>
+      <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${nameSafe}','${section}')" title="Supprimer"><i class="ti ti-x"></i></button>
     </div>`;
   }).join('');
 }

@@ -1835,72 +1835,71 @@ async function downloadAtt(testId, ai){
   }
 }
 
-async function handleUpload(e, testId){
+async function handleUpload(e, testId, section='reports'){
   const t=tests.find(x=>x.id===testId); if(!t)return;
   const files=Array.from(e.target.files); if(!files.length)return;
-  e.target.value=''; // reset input
+  e.target.value='';
 
-  // Sans connexion : fallback base64 (localStorage uniquement)
   if(!currentAccount){
     let done=0;
     files.forEach(file=>{
       const r=new FileReader();
       r.onload=ev=>{
-        t.attachments.push({name:file.name,type:file.type,size:file.size,data:ev.target.result});
-        if(++done===files.length){ persist(); toast(done+' fichier'+(done>1?'s':'')+' joint'+(done>1?'s':'')+' (local).','info'); }
+        const arr = section==='ref' ? (t.refAttachments=t.refAttachments||[]) : t.attachments;
+        arr.push({name:file.name,type:file.type,size:file.size,data:ev.target.result});
+        if(++done===files.length){ persist(); toast(done+' fichier'+(done>1?'s':'')+' joint (local).','info'); }
       };
       r.readAsDataURL(file);
     });
     return;
   }
 
-  // Avec connexion : upload dans Labo/Attachments/<slug-test>/
   const token=await getToken(); if(!token){ toast('Impossible d\'obtenir le token.','danger'); return; }
-  // S'assure que le dossier existe et récupère son ID stable
-  if(!t.spFolderId){
-    t.spFolderId = await ensureSpFolder(t.name, token);
-  }
-  const folderPath=attFolderPath(t.name);
+
+  // S'assure que le dossier racine existe
+  if(!t.spFolderId) t.spFolderId = await ensureSpFolder(t.name, token);
+
+  // S'assure que le sous-dossier existe et stocke son ID stable
+  const basePath = attFolderPath(t.name);
+  if(section==='ref' && !t.spRefFolderId)
+    t.spRefFolderId = await ensureSubFolder(basePath, 'Reference', token);
+  if(section==='reports' && !t.spReportsFolderId)
+    t.spReportsFolderId = await ensureSubFolder(basePath, 'Rapports', token);
+
+  const folderPath = attFolderPath(t.name, section);
   setSyncMsg('<span class="sync-spinner"></span>Upload en cours…');
 
   let done=0; let errors=0;
   for(const file of files){
     try{
       const uploadPath=`${folderPath}/${file.name}`;
-      const uploadUrl=spFileUrl(uploadPath);
-
-      // Pour les fichiers > 4 Mo il faudrait une upload session, ici on couvre jusqu'à ~60 Mo avec PUT simple
-      const res=await fetch(uploadUrl,{
+      const res=await fetch(spFileUrl(uploadPath),{
         method:'PUT',
         headers:{ Authorization:`Bearer ${token}`, 'Content-Type': file.type||'application/octet-stream' },
         body: file
       });
-
       if(res.ok){
-        // Retire un éventuel ancien fichier du même nom (déjà présent dans la liste)
-        t.attachments=t.attachments.filter(a=>!(a.spPath===uploadPath));
-        t.attachments.push({ name:file.name, type:file.type, size:file.size, spPath:uploadPath });
+        if(section==='ref'){
+          t.refAttachments=t.refAttachments||[];
+          t.refAttachments=t.refAttachments.filter(a=>a.spPath!==uploadPath);
+          t.refAttachments.push({name:file.name,type:file.type,size:file.size,spPath:uploadPath});
+        } else {
+          t.attachments=t.attachments.filter(a=>a.spPath!==uploadPath);
+          t.attachments.push({name:file.name,type:file.type,size:file.size,spPath:uploadPath});
+        }
         done++;
-      } else {
-        errors++;
-        toast(`Erreur upload «\u00a0${file.name}\u00a0» (${res.status}).`,'danger');
-      }
-    }catch(err){
-      errors++;
-      toast(`Erreur réseau pour «\u00a0${file.name}\u00a0».`,'danger');
-    }
+      } else { errors++; toast(`Erreur upload «\u00a0${file.name}\u00a0» (${res.status}).`,'danger'); }
+    }catch(err){ errors++; toast(`Erreur réseau pour «\u00a0${file.name}\u00a0».`,'danger'); }
   }
 
   if(done>0){
     await persist();
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Sauvegardé');
     setTimeout(()=>setSyncMsg(''),3000);
-    toast(done+' fichier'+(done>1?'s':'')+' uploadé'+(done>1?'s':'')+' sur SharePoint.','success');
-    delete _attCache[testId]; // invalide le cache
-    refreshAttList(testId);
-  } else {
-    setSyncMsg('');
-  }
+    toast(done+' fichier'+(done>1?'s':'')+' uploadé sur SharePoint.','success');
+    if(section==='ref'){ delete _refCache[testId]; refreshRefList(testId); }
+    else { delete _attCache[testId]; refreshAttList(testId); }
+  } else { setSyncMsg(''); }
 }
 
 function fileIcon(name){

@@ -1082,9 +1082,7 @@ function renderViewBody(t){
       ${delivs.length?`<div class="section"><div class="section-title"><i class="ti ti-checklist" style="font-size:13px;"></i> Livrables (${delivs.length})</div><div class="deliverable-list">${delivs.map(d=>`<div class="deliverable-item"><i class="ti ti-circle-check"></i>${esc(d)}</div>`).join('')}</div></div>`:''}
       <div class="section att-section-ref">
         <div class="att-section-title"><i class="ti ti-book-2" style="font-size:13px;color:var(--purple);"></i><span style="color:var(--purple);">Documents de référence</span><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:var(--font);text-transform:none;letter-spacing:0;"> — instructions, specs, exigences</span></div>
-        <div class="att-list" id="reflist-${t.id}">
-          <div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>
-        </div>
+        <div class="att-list" id="reflist-${t.id}"></div>
         <label class="upload-zone" for="up-ref-${t.id}" style="border-color:rgba(167,139,250,.35);">
           <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;color:var(--purple);"></i>Déposer un document de référence — instruction, spec, plan de test…
           <input type="file" id="up-ref-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}','ref')"/>
@@ -1246,7 +1244,10 @@ function saveEdit(id){
           if(ok){
             delete _attCache[id];
             delete _refCache[id];
-            // Les IDs des sous-dossiers (spRefFolderId, spReportsFolderId) restent valides après renommage du parent
+            // Efface les IDs des sous-dossiers — ils seront redécouverts par chemin au prochain accès
+            // (nécessaire car le chemin a changé avec le nouveau nom du test)
+            t.spRefFolderId = null;
+            t.spReportsFolderId = null;
             toast('Dossier SharePoint renommé — pièces jointes conservées.','success');
           } else {
             toast('Test mis à jour — renommage du dossier SharePoint échoué.','danger');
@@ -1646,7 +1647,7 @@ async function refreshRefList(testId, forceRefresh){
     hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
     el.appendChild(hint);
   } else {
-    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
+    el.innerHTML=''; // pas de spinner — affichage silencieux
   }
   const token=await getToken(); if(!token) return;
   try{
@@ -1673,8 +1674,8 @@ async function refreshRefList(testId, forceRefresh){
       if(res.status===404) items=[];
       else if(!res.ok) items=null;
       else items=(await res.json()).value?.filter(i=>i.file)||[];
-      // Récupère l'ID si le dossier existe
-      if(items !== null && items.length > 0){
+      // Récupère l'ID dès que le dossier existe (même vide)
+      if(items !== null){
         try{
           const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}});
           if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; }

@@ -135,6 +135,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-body.open{display:block;}
 .card-body-inner{padding:18px;}
 
+/* MODE APERÇU GLOBAL */
+.preview-panel{display:none;border-top:1px solid var(--border);background:var(--bg3);padding:12px 18px;gap:10px;}
+.preview-panel.open{display:grid;grid-template-columns:1fr 1fr;}
+.preview-panel .pv-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;}
+.preview-panel .pv-label{font-size:10px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.preview-panel .pv-text{font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;max-height:100px;overflow:hidden;mask-image:linear-gradient(to bottom,#000 65%,transparent 100%);}
+.btn-preview-mode{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);border-radius:var(--radius);cursor:pointer;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;transition:all .18s;white-space:nowrap;backdrop-filter:blur(4px);}
+.btn-preview-mode:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);}
+.btn-preview-mode.active{background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.6);color:#e0d5ff;}
+@media(max-width:640px){.preview-panel.open{grid-template-columns:1fr;}}
+
 /* VIEW MODE */
 .info-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
 .info-block{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
@@ -188,6 +199,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .att-del:hover{color:var(--danger);background:var(--danger-dim);}
 .upload-zone{border:1px dashed rgba(79,123,255,.35);border-radius:var(--radius);padding:14px;text-align:center;font-size:12px;color:var(--text3);cursor:pointer;transition:all .18s;background:transparent;}
 .upload-zone:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.att-section-title{font-family:var(--title);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.att-section-ref .att-section-title{color:var(--purple);}
+.att-section-ref .upload-zone{border-color:rgba(167,139,250,.35);}
+.att-section-ref .upload-zone:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-dim);}
+.att-divider{height:1px;background:var(--border);margin:16px 0;}
 
 /* CARD FOOTER */
 .card-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:var(--bg3);}
@@ -383,6 +399,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="header-sub">Gestion &amp; suivi du programme de tests laboratoire</div>
       </div>
       <div class="header-actions">
+        <button class="btn-preview-mode" id="btn-global-preview" onclick="toggleGlobalPreview()"><i class="ti ti-eye" style="font-size:15px;"></i> Aperçu</button>
         <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
         <button class="btn" onclick="exportPDF()"><i class="ti ti-download"></i> Export PDF</button>
         <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
@@ -527,6 +544,7 @@ let tests = [];
 let certifications = [];
 let tempD = [];
 let editingCards = {};
+let _previewMode = false; // mode aperçu global activé
 
 const STATUS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
 
@@ -1013,6 +1031,10 @@ function render(){
         </div>
         <i class="ti ti-chevron-down chevron"></i>
       </div>
+      <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description))?' open':''}" id="preview-${t.id}">
+        ${t.material?`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool"></i> Matériel / équipement</div><div class="pv-text">${esc(t.material)}</div></div>`:''}
+        ${t.description?`<div class="pv-block"><div class="pv-label"><i class="ti ti-file-description"></i> Protocole / conditions</div><div class="pv-text">${esc(t.description)}</div></div>`:''}
+      </div>
       <div class="card-body${isOpen?' open':''}" id="body-${t.id}">
         ${isEditing ? renderEditForm(t, edDelivs) : renderViewBody(t)}
       </div>
@@ -1024,6 +1046,7 @@ function render(){
   data.forEach(t=>{
     if((openIds.has(t.id)||editingCards[t.id]) && !editingCards[t.id]){
       refreshAttList(t.id);
+      refreshRefList(t.id);
     }
   });
 }
@@ -1057,14 +1080,25 @@ function renderViewBody(t){
       ${t.material?`<div class="section"><div class="section-title"><i class="ti ti-tool" style="font-size:13px;"></i> Matériel / équipement</div><div class="text-block">${esc(t.material)}</div></div>`:''}
       ${t.description?`<div class="section"><div class="section-title"><i class="ti ti-file-description" style="font-size:13px;"></i> Protocole</div><div class="text-block">${esc(t.description)}</div></div>`:''}
       ${delivs.length?`<div class="section"><div class="section-title"><i class="ti ti-checklist" style="font-size:13px;"></i> Livrables (${delivs.length})</div><div class="deliverable-list">${delivs.map(d=>`<div class="deliverable-item"><i class="ti ti-circle-check"></i>${esc(d)}</div>`).join('')}</div></div>`:''}
+      <div class="section att-section-ref">
+        <div class="att-section-title"><i class="ti ti-book-2" style="font-size:13px;color:var(--purple);"></i><span style="color:var(--purple);">Documents de référence</span><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:var(--font);text-transform:none;letter-spacing:0;"> — instructions, specs, exigences</span></div>
+        <div class="att-list" id="reflist-${t.id}">
+          <div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>
+        </div>
+        <label class="upload-zone" for="up-ref-${t.id}" style="border-color:rgba(167,139,250,.35);">
+          <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;color:var(--purple);"></i>Déposer un document de référence — instruction, spec, plan de test…
+          <input type="file" id="up-ref-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}','ref')"/>
+        </label>
+      </div>
+      <div class="att-divider"></div>
       <div class="section">
-        <div class="section-title"><i class="ti ti-paperclip" style="font-size:13px;"></i> Pièces jointes</div>
+        <div class="att-section-title"><i class="ti ti-paperclip" style="font-size:13px;color:var(--accent);"></i><span style="color:var(--accent);">Comptes rendus &amp; livrables</span><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:var(--font);text-transform:none;letter-spacing:0;"> — rapports, relevés, datasets</span></div>
         <div class="att-list" id="attlist-${t.id}">
           <div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>
         </div>
         <label class="upload-zone" for="up-${t.id}">
-          <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;"></i>Joindre un fichier — rapport, relevé, dataset, schéma…
-          <input type="file" id="up-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}')"/>
+          <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;"></i>Déposer un compte rendu — rapport, relevé, dataset, schéma…
+          <input type="file" id="up-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}','reports')"/>
         </label>
       </div>
     </div>
@@ -1211,6 +1245,8 @@ function saveEdit(id){
           const ok = await renameSpFolder(t.spFolderId, name);
           if(ok){
             delete _attCache[id];
+            delete _refCache[id];
+            // Les IDs des sous-dossiers (spRefFolderId, spReportsFolderId) restent valides après renommage du parent
             toast('Dossier SharePoint renommé — pièces jointes conservées.','success');
           } else {
             toast('Test mis à jour — renommage du dossier SharePoint échoué.','danger');
@@ -1247,6 +1283,28 @@ function rerenderDelivs(id){
   el.innerHTML=(editingCards[id]?.deliverables||[]).map((d,i)=>`<div class="dchip"><i class="ti ti-circle-check" style="color:var(--success);font-size:14px;flex-shrink:0;"></i><span>${esc(d)}</span><button onclick="removeED('${id}',${i})"><i class="ti ti-x"></i></button></div>`).join('');
 }
 
+function toggleGlobalPreview(){
+  _previewMode = !_previewMode;
+  const btn = document.getElementById('btn-global-preview');
+  if(btn){
+    btn.classList.toggle('active', _previewMode);
+    btn.innerHTML = _previewMode
+      ? '<i class="ti ti-eye-off" style="font-size:15px;"></i> Aperçu'
+      : '<i class="ti ti-eye" style="font-size:15px;"></i> Aperçu';
+  }
+  // Affiche/masque les panneaux sur toutes les cartes visibles
+  document.querySelectorAll('[id^="preview-"]').forEach(panel => {
+    const id = panel.id.replace('preview-','');
+    const body = document.getElementById('body-'+id);
+    const isOpen = body && body.classList.contains('open');
+    const t = tests.find(x=>x.id===id);
+    const hasContent = t && (t.material || t.description);
+    if(hasContent && !isOpen){
+      panel.classList.toggle('open', _previewMode);
+    }
+  });
+}
+
 function toggle(id){
   if(editingCards[id])return;
   const body=document.getElementById('body-'+id);
@@ -1254,7 +1312,19 @@ function toggle(id){
   const wasOpen=body.classList.contains('open');
   body.classList.toggle('open');
   card.classList.toggle('expanded');
-  if(!wasOpen) refreshAttList(id);
+  if(!wasOpen){
+    // Masque le panneau d'aperçu quand on ouvre la carte complète
+    const prev=document.getElementById('preview-'+id);
+    if(prev) prev.classList.remove('open');
+    refreshAttList(id);
+  } else {
+    // Réaffiche le panneau d'aperçu si le mode est actif
+    const prev=document.getElementById('preview-'+id);
+    const t=tests.find(x=>x.id===id);
+    if(prev && _previewMode && t && (t.material||t.description)){
+      prev.classList.add('open');
+    }
+  }
 }
 
 /* ---- MODAL NOUVEAU TEST ---- */
@@ -1398,26 +1468,47 @@ function slugifyTestName(name){
 }
 
 // Construit le chemin OneDrive d'un fichier : Labo/Attachments/<slug>/<filename>
-function attFolderPath(testName){ return `${SP_CONFIG.folderPath}/Attachments/${slugifyTestName(testName)}`; }
-function attFilePath(testName, fileName){ return `${attFolderPath(testName)}/${fileName}`; }
+function attFolderPath(testName, section){
+  const base = `${SP_CONFIG.folderPath}/Attachments/${slugifyTestName(testName)}`;
+  if(section==='ref')     return `${base}/Reference`;
+  if(section==='reports') return `${base}/Rapports`;
+  return base;
+}
+function attFilePath(testName, fileName){ return `${attFolderPath(testName,'reports')}/${fileName}`; }
 
 // Liste les fichiers présents dans le dossier SharePoint du test (lecture live)
-// Utilise spFolderId si disponible (stable), sinon fallback par nom de dossier
-async function listSpFolder(testName, spFolderId){
+// Utilise spFolderId si disponible (stable), sinon fallback par chemin
+async function listSpFolder(testName, spFolderId, section){
   const token=await getToken(); if(!token) return null;
   try{
     let url;
-    if(spFolderId){
-      url = `${spItemUrl(spFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`;
+    if(spFolderId && !section){
+      url = `${spItemUrl(spFolderId)}/children?$select=id,name,size,file,folder,lastModifiedDateTime`;
     } else {
-      url = spFolderChildren(attFolderPath(testName));
+      url = spFolderChildren(attFolderPath(testName, section||'reports'));
     }
     const res=await fetch(url, {headers:{Authorization:`Bearer ${token}`}});
     if(res.status===404) return [];
     if(!res.ok) return null;
     const json=await res.json();
-    return (json.value||[]).filter(i=>i.file);
+    return section ? (json.value||[]).filter(i=>i.file) : (json.value||[]);
   }catch(e){ return null; }
+}
+
+// Récupère ou crée un sous-dossier, retourne son ID Graph stable
+async function ensureSubFolder(parentPath, subName, token){
+  const fullPath = `${parentPath}/${subName}`;
+  try{
+    const res = await fetch(`${driveBase()}/root:/${fullPath}`, {headers:{Authorization:`Bearer ${token}`}});
+    if(res.ok){ const m = await res.json(); return m.id; }
+    const cr = await fetch(`${driveBase()}/root:/${parentPath}:/children`, {
+      method:'POST',
+      headers:{Authorization:`Bearer ${token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({name:subName, folder:{}, '@microsoft.graph.conflictBehavior':'rename'})
+    });
+    if(cr.ok){ const m = await cr.json(); return m.id; }
+  }catch(e){}
+  return null;
 }
 
 // Récupère ou crée le dossier SharePoint d'un test, retourne son ID Graph
@@ -1515,6 +1606,7 @@ async function deleteByItemId(itemId, testId, fileName){
 
 // Cache mémoire des listings de dossiers : { testId: { items, ts } }
 const _attCache = {};
+const _refCache  = {};
 const _attCount = {}; // { testId: number } — vrai compte depuis SharePoint
 const ATT_CACHE_TTL = 30000;
 
@@ -1534,6 +1626,43 @@ function renderSpItems(items, testId){
       <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${nameSafe}')" title="Supprimer"><i class="ti ti-x"></i></button>
     </div>`;
   }).join('');
+}
+
+// ── Documents de référence ──
+async function refreshRefList(testId, forceRefresh){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  const el=document.getElementById('reflist-'+testId); if(!el) return;
+  if(!currentAccount){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 4px;">Connexion requise.</div>';
+    return;
+  }
+  const cached=_refCache[testId];
+  const now=Date.now(); const stale=!cached||(now-cached.ts>ATT_CACHE_TTL);
+  if(cached&&!forceRefresh){
+    el.innerHTML=renderSpItems(cached.items,testId,'ref')+(cached.items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
+    if(!stale) return;
+    const hint=document.createElement('div');
+    hint.style.cssText='font-size:11px;color:var(--text3);padding:4px;display:flex;align-items:center;gap:5px;';
+    hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
+    el.appendChild(hint);
+  } else {
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
+  }
+  const token=await getToken(); if(!token) return;
+  if(!t.spRefFolderId && t.spFolderId)
+    t.spRefFolderId = await ensureSubFolder(attFolderPath(t.name), 'Reference', token);
+  try{
+    const url = t.spRefFolderId
+      ? `${spItemUrl(t.spRefFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`
+      : spFolderChildren(attFolderPath(t.name,'ref'));
+    const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+    const items=(res.status===404||!res.ok)?[]:(await res.json()).value?.filter(i=>i.file)||[];
+    _refCache[testId]={items,ts:Date.now()};
+    const elNow=document.getElementById('reflist-'+testId);
+    if(elNow) elNow.innerHTML=renderSpItems(items,testId,'ref')+(items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
+  }catch(e){
+    if(!cached){ const elNow=document.getElementById('reflist-'+testId); if(elNow) elNow.innerHTML='<div style="font-size:12px;color:var(--warning);padding:6px 4px;">Impossible de lire les documents de référence.</div>'; }
+  }
 }
 
 // Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire
@@ -1568,8 +1697,20 @@ async function refreshAttList(testId, forceRefresh){
     el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
   }
 
-  // --- Appel Graph en arrière-plan ---
-  const items=await listSpFolder(t.name, t.spFolderId);
+  // --- Appel Graph en arrière-plan (sous-dossier Rapports/) ---
+  const tokenR=await getToken();
+  if(tokenR && !t.spReportsFolderId && t.spFolderId)
+    t.spReportsFolderId = await ensureSubFolder(attFolderPath(t.name), 'Rapports', tokenR);
+  const items = t.spReportsFolderId
+    ? await (async()=>{
+        const tok=await getToken(); if(!tok) return null;
+        try{
+          const res=await fetch(`${spItemUrl(t.spReportsFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${tok}`}});
+          if(res.status===404) return []; if(!res.ok) return null;
+          return (await res.json()).value?.filter(i=>i.file)||[];
+        }catch(e){ return null; }
+      })()
+    : await listSpFolder(t.name, null, 'reports');
 
   if(items===null){
     if(!cached){

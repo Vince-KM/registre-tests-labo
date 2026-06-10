@@ -915,6 +915,7 @@ async function refreshAllAttCounts(){
       if(prev !== total){
         updateAttChip(t.id, total);
         if(document.getElementById('attlist-'+t.id)) refreshAttList(t.id, true);
+        if(document.getElementById('reflist-'+t.id)) refreshRefList(t.id, true);
       }
     }catch(e){}
   }
@@ -1187,6 +1188,7 @@ function cancelEdit(id){
   const card=document.getElementById('card-'+id);
   if(body){body.classList.add('open');card.classList.add('expanded');}
   refreshAttList(id);
+  refreshRefList(id);
 }
 
 function saveEdit(id){
@@ -1256,7 +1258,7 @@ function saveEdit(id){
         // Si pas de dossier (aucun fichier jamais uploadé) → rien à renommer, c'est normal
       }
       await persist();
-      setTimeout(()=>{ refreshAttList(id); },50);
+      setTimeout(()=>{ refreshAttList(id); refreshRefList(id); },50);
     })();
   } else {
     persist();
@@ -1267,7 +1269,7 @@ function saveEdit(id){
     const body=document.getElementById('body-'+id);
     const card=document.getElementById('card-'+id);
     if(body){body.classList.add('open');card.classList.add('expanded');}
-    if(oldName === name) refreshAttList(id);
+    if(oldName === name){ refreshAttList(id); refreshRefList(id); }
   },50);
 }
 
@@ -1318,6 +1320,7 @@ function toggle(id){
     const prev=document.getElementById('preview-'+id);
     if(prev) prev.classList.remove('open');
     refreshAttList(id);
+    refreshRefList(id);
   } else {
     // Réaffiche le panneau d'aperçu si le mode est actif
     const prev=document.getElementById('preview-'+id);

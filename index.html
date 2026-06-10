@@ -1605,13 +1605,20 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
     }
     await persist();
     toast('Fichier supprimé.','info');
-    // Mise à jour immédiate du cache (retire l'item sans refaire d'appel réseau)
+    // Retire l'item du cache et met à jour le DOM immédiatement
     if(section==='ref'){
-      if(_refCache[testId]) _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
-      refreshRefList(testId, true);
+      if(_refCache[testId]){
+        _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
+        const el=document.getElementById('reflist-'+testId);
+        if(el) el.innerHTML=renderSpItems(_refCache[testId].items, testId, 'ref')+(_refCache[testId].items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
+      } else { refreshRefList(testId); }
     } else {
-      if(_attCache[testId]) _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
-      refreshAttList(testId, true);
+      if(_attCache[testId]){
+        _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
+        const el=document.getElementById('attlist-'+testId);
+        if(el) el.innerHTML=renderSpItems(_attCache[testId].items, testId, 'reports')+renderLocalAtts(t||{attachments:[]});
+        if(t){ const lc=(t.attachments||[]).filter(a=>a.data).length; _attCount[testId]=_attCache[testId].items.length+lc; updateAttChip(testId,_attCount[testId]); }
+      } else { refreshAttList(testId); }
     }
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
 }

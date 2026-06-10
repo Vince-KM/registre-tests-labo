@@ -1604,20 +1604,22 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
       else t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
     }
     toast('Fichier supprimé.','info');
-    // Mise à jour DOM immédiate — avant persist pour être instantané
-    if(section==='ref'){
-      if(_refCache[testId]){
-        _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
-        const el=document.getElementById('reflist-'+testId);
-        if(el) el.innerHTML=renderSpItems(_refCache[testId].items, testId, 'ref')+(_refCache[testId].items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
-      }
-    } else {
-      if(_attCache[testId]){
-        _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
-        const el=document.getElementById('attlist-'+testId);
-        if(el) el.innerHTML=renderSpItems(_attCache[testId].items, testId, 'reports')+renderLocalAtts(t||{attachments:[]});
-        if(t){ const lc=(t.attachments||[]).filter(a=>a.data).length; _attCount[testId]=_attCache[testId].items.length+lc; updateAttChip(testId,_attCount[testId]); }
-      }
+    // Suppression immédiate de l'élément dans le DOM — indépendant du cache
+    const listId = section==='ref' ? 'reflist-'+testId : 'attlist-'+testId;
+    const listEl = document.getElementById(listId);
+    if(listEl){
+      // Retire l'item visuellement en cherchant le bouton qui contient cet itemId
+      const rows = listEl.querySelectorAll('.att-item');
+      rows.forEach(row => {
+        if(row.innerHTML.includes(itemId)) row.remove();
+      });
+    }
+    // Met aussi à jour le cache si présent
+    if(section==='ref' && _refCache[testId])
+      _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
+    if(section==='reports' && _attCache[testId]){
+      _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
+      if(t){ const lc=(t.attachments||[]).filter(a=>a.data).length; _attCount[testId]=_attCache[testId].items.length+lc; updateAttChip(testId,_attCount[testId]); }
     }
     await persist();
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
@@ -1630,7 +1632,7 @@ const _attCount = {}; // { testId: number } — vrai compte depuis SharePoint
 const ATT_CACHE_TTL = 30000;
 
 // Rendu HTML d'une liste de driveItems
-function renderSpItems(items, testId){
+function renderSpItems(items, testId, section='reports'){
   if(!items.length) return '';
   return items.map(item=>{
     const dt=new Date(item.lastModifiedDateTime).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});

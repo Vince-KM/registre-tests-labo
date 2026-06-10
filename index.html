@@ -1649,14 +1649,39 @@ async function refreshRefList(testId, forceRefresh){
     el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
   }
   const token=await getToken(); if(!token) return;
-  if(!t.spRefFolderId && t.spFolderId)
-    t.spRefFolderId = await ensureSubFolder(attFolderPath(t.name), 'Reference', token);
   try{
-    const url = t.spRefFolderId
-      ? `${spItemUrl(t.spRefFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`
-      : spFolderChildren(attFolderPath(t.name,'ref'));
-    const res=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
-    const items=(res.status===404||!res.ok)?[]:(await res.json()).value?.filter(i=>i.file)||[];
+    let items;
+    if(t.spRefFolderId){
+      const res=await fetch(`${spItemUrl(t.spRefFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${token}`}});
+      if(res.status===404){
+        // ID obsolète — efface et retente par chemin
+        t.spRefFolderId = null;
+        const res2=await fetch(spFolderChildren(attFolderPath(t.name,'ref')),{headers:{Authorization:`Bearer ${token}`}});
+        if(res2.status===404) items=[];
+        else if(!res2.ok) items=null;
+        else {
+          items=(await res2.json()).value?.filter(i=>i.file)||[];
+          // Récupère le nouvel ID
+          try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}}); if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; } }catch(e){}
+        }
+      }
+      else if(!res.ok) items=null;
+      else items=(await res.json()).value?.filter(i=>i.file)||[];
+    } else {
+      // Lit par chemin sans créer
+      const res=await fetch(spFolderChildren(attFolderPath(t.name,'ref')),{headers:{Authorization:`Bearer ${token}`}});
+      if(res.status===404) items=[];
+      else if(!res.ok) items=null;
+      else items=(await res.json()).value?.filter(i=>i.file)||[];
+      // Récupère l'ID si le dossier existe
+      if(items !== null && items.length > 0){
+        try{
+          const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}});
+          if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; }
+        }catch(e){}
+      }
+    }
+    if(items===null) items=[];
     _refCache[testId]={items,ts:Date.now()};
     const elNow=document.getElementById('reflist-'+testId);
     if(elNow) elNow.innerHTML=renderSpItems(items,testId,'ref')+(items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
@@ -1698,19 +1723,37 @@ async function refreshAttList(testId, forceRefresh){
   }
 
   // --- Appel Graph en arrière-plan (sous-dossier Rapports/) ---
+  // Utilise l'ID stable si disponible, sinon lit par chemin (sans créer)
   const tokenR=await getToken();
-  if(tokenR && !t.spReportsFolderId && t.spFolderId)
-    t.spReportsFolderId = await ensureSubFolder(attFolderPath(t.name), 'Rapports', tokenR);
-  const items = t.spReportsFolderId
-    ? await (async()=>{
-        const tok=await getToken(); if(!tok) return null;
-        try{
-          const res=await fetch(`${spItemUrl(t.spReportsFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${tok}`}});
-          if(res.status===404) return []; if(!res.ok) return null;
-          return (await res.json()).value?.filter(i=>i.file)||[];
-        }catch(e){ return null; }
-      })()
-    : await listSpFolder(t.name, null, 'reports');
+  let items;
+  if(t.spReportsFolderId){
+    try{
+      const res=await fetch(`${spItemUrl(t.spReportsFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${tokenR}`}});
+      if(res.status===404){
+        // ID obsolète — efface et retente par chemin
+        t.spReportsFolderId = null;
+        const res2=await fetch(spFolderChildren(attFolderPath(t.name,'reports')),{headers:{Authorization:`Bearer ${tokenR}`}});
+        if(res2.status===404) items=[];
+        else if(!res2.ok) items=null;
+        else {
+          items=(await res2.json()).value?.filter(i=>i.file)||[];
+          try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'reports')}`,{headers:{Authorization:`Bearer ${tokenR}`}}); if(r.ok){ const m=await r.json(); t.spReportsFolderId=m.id; } }catch(e){}
+        }
+      }
+      else if(!res.ok) items=null;
+      else items=(await res.json()).value?.filter(i=>i.file)||[];
+    }catch(e){ items=null; }
+  } else {
+    // Pas encore d'ID — lit par chemin (le dossier Rapports/ peut ne pas exister)
+    items = await listSpFolder(t.name, null, 'reports');
+    // Si le dossier existe, on récupère son ID pour les prochains accès
+    if(items !== null && tokenR){
+      try{
+        const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'reports')}`,{headers:{Authorization:`Bearer ${tokenR}`}});
+        if(r.ok){ const m=await r.json(); t.spReportsFolderId=m.id; }
+      }catch(e){}
+    }
+  }
 
   if(items===null){
     if(!cached){
@@ -1732,7 +1775,7 @@ async function refreshAttList(testId, forceRefresh){
   // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)
   const elNow=document.getElementById('attlist-'+testId);
   if(elNow){
-    elNow.innerHTML=renderSpItems(items, testId)+renderLocalAtts(t);
+    elNow.innerHTML=renderSpItems(items, testId, 'reports')+renderLocalAtts(t);
   }
 }
 

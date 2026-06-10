@@ -1633,62 +1633,72 @@ function renderSpItems(items, testId){
 async function refreshRefList(testId, forceRefresh){
   const t=tests.find(x=>x.id===testId); if(!t) return;
   const el=document.getElementById('reflist-'+testId); if(!el) return;
+
   if(!currentAccount){
-    el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 4px;">Connexion requise.</div>';
+    el.innerHTML='';
     return;
   }
+
   const cached=_refCache[testId];
   const now=Date.now(); const stale=!cached||(now-cached.ts>ATT_CACHE_TTL);
+
   if(cached&&!forceRefresh){
     el.innerHTML=renderSpItems(cached.items,testId,'ref')+(cached.items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
     if(!stale) return;
     const hint=document.createElement('div');
-    hint.style.cssText='font-size:11px;color:var(--text3);padding:4px;display:flex;align-items:center;gap:5px;';
+    hint.id='ref-hint-'+testId;
+    hint.style.cssText='font-size:11px;color:var(--text3);padding:4px 4px 0;display:flex;align-items:center;gap:5px;';
     hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
     el.appendChild(hint);
   } else {
-    el.innerHTML=''; // pas de spinner — affichage silencieux
+    el.innerHTML=''; // silencieux comme Rapports
   }
-  const token=await getToken(); if(!token) return;
-  try{
-    let items;
-    if(t.spRefFolderId){
+
+  // Même logique que Rapports : ID stable si dispo, sinon par chemin
+  const token=await getToken();
+  let items;
+  if(t.spRefFolderId){
+    try{
       const res=await fetch(`${spItemUrl(t.spRefFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${token}`}});
       if(res.status===404){
-        // ID obsolète — efface et retente par chemin
+        // ID obsolète — efface et retente par chemin avec le nouveau nom
         t.spRefFolderId = null;
         const res2=await fetch(spFolderChildren(attFolderPath(t.name,'ref')),{headers:{Authorization:`Bearer ${token}`}});
         if(res2.status===404) items=[];
         else if(!res2.ok) items=null;
         else {
           items=(await res2.json()).value?.filter(i=>i.file)||[];
-          // Récupère le nouvel ID
           try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}}); if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; } }catch(e){}
         }
       }
       else if(!res.ok) items=null;
       else items=(await res.json()).value?.filter(i=>i.file)||[];
-    } else {
-      // Lit par chemin sans créer
-      const res=await fetch(spFolderChildren(attFolderPath(t.name,'ref')),{headers:{Authorization:`Bearer ${token}`}});
-      if(res.status===404) items=[];
-      else if(!res.ok) items=null;
-      else items=(await res.json()).value?.filter(i=>i.file)||[];
-      // Récupère l'ID dès que le dossier existe (même vide)
-      if(items !== null){
-        try{
-          const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}});
-          if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; }
-        }catch(e){}
-      }
+    }catch(e){ items=null; }
+  } else {
+    // Pas encore d'ID — lit par chemin (le dossier Reference/ peut ne pas exister)
+    items = await listSpFolder(t.name, null, 'ref');
+    // Récupère l'ID si le dossier existe
+    if(items !== null && token){
+      try{
+        const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'ref')}`,{headers:{Authorization:`Bearer ${token}`}});
+        if(r.ok){ const m=await r.json(); t.spRefFolderId=m.id; }
+      }catch(e){}
     }
-    if(items===null) items=[];
-    _refCache[testId]={items,ts:Date.now()};
-    const elNow=document.getElementById('reflist-'+testId);
-    if(elNow) elNow.innerHTML=renderSpItems(items,testId,'ref')+(items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
-  }catch(e){
-    if(!cached){ const elNow=document.getElementById('reflist-'+testId); if(elNow) elNow.innerHTML='<div style="font-size:12px;color:var(--warning);padding:6px 4px;">Impossible de lire les documents de référence.</div>'; }
   }
+
+  if(items===null){
+    if(!cached){
+      const elNow=document.getElementById('reflist-'+testId);
+      if(elNow) elNow.innerHTML='<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire les documents de référence.</div>';
+    } else {
+      document.getElementById('ref-hint-'+testId)?.remove();
+    }
+    return;
+  }
+
+  _refCache[testId]={ items, ts:Date.now() };
+  const elNow=document.getElementById('reflist-'+testId);
+  if(elNow) elNow.innerHTML=renderSpItems(items,testId,'ref')+(items.length?'':'<div style="font-size:12px;color:var(--text3);padding:6px 4px;font-style:italic;">Aucun document de référence.</div>');
 }
 
 // Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire

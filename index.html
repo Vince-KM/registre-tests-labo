@@ -1591,20 +1591,28 @@ async function downloadByItemId(itemId, fileName){
 }
 
 // Supprime un fichier par son driveItem id
-async function deleteByItemId(itemId, testId, fileName){
+async function deleteByItemId(itemId, testId, fileName, section='reports'){
   if(!confirm(`Supprimer «\u00a0${fileName}\u00a0» ?`)) return;
   const token=await getToken(); if(!token) return;
   try{
     await fetch(spItemUrl(itemId),{
       method:'DELETE', headers:{Authorization:`Bearer ${token}`}
     });
-    // Retire aussi de la liste locale si présent
     const t=tests.find(x=>x.id===testId);
-    if(t) t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
+    if(t){
+      if(section==='ref') t.refAttachments=(t.refAttachments||[]).filter(a=>a.spItemId!==itemId);
+      else t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
+    }
     await persist();
     toast('Fichier supprimé.','info');
-    delete _attCache[testId]; // invalide le cache
-    refreshAttList(testId);
+    // Mise à jour immédiate du cache (retire l'item sans refaire d'appel réseau)
+    if(section==='ref'){
+      if(_refCache[testId]) _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
+      refreshRefList(testId, true);
+    } else {
+      if(_attCache[testId]) _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
+      refreshAttList(testId, true);
+    }
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
 }
 

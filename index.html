@@ -1391,6 +1391,7 @@ function openModal(){
   ['f-name','f-type','f-date','f-dateend','f-domain','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  const daysEl=document.getElementById('f-days'); if(daysEl) daysEl.value='';
   if(!window._failClassSel) window._failClassSel={};
   window._failClassSel['f']='';
   document.querySelectorAll('#f-fc-a,#f-fc-b,#f-fc-c').forEach(b=>b.className='fail-class-btn');

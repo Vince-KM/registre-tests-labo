@@ -2451,27 +2451,63 @@ function toast(msg,type='info'){
 }
 
 /* ---- EXPORT EXCEL ---- */
-function exportExcel(){
-  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Livrables','R&D','Certifications']];
+async function exportExcel(){
+  // Scan des PJ manquantes avant export
+  toast('Préparation de l\'export…','info');
+  for(const t of tests){
+    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+  }
+
+  const rows = [[
+    'N°','Nom du test','Responsable','Type','Statut','Classe échec',
+    'Domaine','Date début','Date fin','Durée (j)',
+    'Matériel / équipement','Description / protocole',
+    'Livrables','R&D','Certifications',
+    'Docs de référence','Comptes rendus & livrables',
+    'Liens entre tests'
+  ]];
+
   tests.forEach(function(t,i){
-    var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
+    var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(' | ');
+    var refFiles  = _refCache[t.id]  ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ')  : '';
+    var rptFiles  = _attCache[t.id]  ? _attCache[t.id].items.map(function(f){return f.name;}).join(' | ')  : '';
+    var links = (t.links||[]).map(function(l){
+      var linked=tests.find(function(x){return x.id===l.testId;});
+      if(!linked) return '';
+      var type=l.type==='depends'?'Dépend de':l.type==='blocks'?'Bloque':'Lié à';
+      return type+' : '+linked.name;
+    }).filter(Boolean).join(' | ');
     rows.push([
-      i+1, t.name, t.type||'', STATUS[t.status]||'',
+      i+1,
+      t.name||'',
+      t.owner||'',
+      t.type||'',
+      STATUS[t.status]||'',
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
-      t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
+      t.domain||'',
+      t.dateStart||'',
+      t.dateEnd||'',
+      t.days||'',
+      t.material||'',
+      t.description||'',
       (t.deliverables||[]).join(' | '),
-      t.isRnD?'Oui':'', certs
+      t.isRnD?'Oui':'',
+      certs,
+      refFiles,
+      rptFiles,
+      links
     ]);
   });
-    var bom = '﻿';
+
+  var bom = '\uFEFF';
   var crlf = String.fromCharCode(13,10);
   var lines = rows.map(function(r){
     return r.map(function(c){
       return '"' + String(c).replace(/"/g,'""') + '"';
     }).join(';');
   }).join(crlf);
-  var csv = bom + lines;
-  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var blob = new Blob([bom+lines], {type:'text/csv;charset=utf-8;'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href=url; a.download='registre-tests-labo.csv';
@@ -2589,10 +2625,30 @@ function renderCalendar(){
 }
 
 /* ---- PDF EXPORT ---- */
-function exportPDF(){
-  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
-  const W=210,M=16,CW=W-M*2;let y=20;
+async function exportPDF(){
+  // Scan des PJ manquantes avant export
+  toast('Préparation de l\'export…','info');
+  for(const t of tests){
+    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+  }
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=16,CW=W-M*2; let y=20;
   const chk=(n=12)=>{if(y+n>275){doc.addPage();y=18;}};
+  const bold=(s,x,yy,color=[20,20,20])=>{doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...color);doc.text(s,x,yy);};
+  const normal=(s,x,yy,color=[80,80,80])=>{doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...color);};
+  const block=(label,value,indent=4)=>{
+    if(!value) return;
+    chk(10);
+    bold(label+' :',M+indent,y,[60,60,60]); y+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
+    const ls=doc.splitTextToSize(value,CW-indent-4);
+    doc.text(ls,M+indent+4,y); y+=ls.length*4.5;
+  };
+
+  // En-tête
   doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(20,20,20);
   doc.text('Registre des Tests — Laboratoire',M,y);y+=8;
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(140,140,140);
@@ -2601,34 +2657,78 @@ function exportPDF(){
 
   tests.forEach((t,i)=>{
     chk(22);
+    // Titre test
     doc.setFillColor(245,245,248);doc.roundedRect(M,y-4,CW,11,2,2,'F');
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20,20,20);
     doc.text('#'+String(i+1).padStart(2,'0')+'  '+t.name,M+4,y+3.5);y+=11;
+
+    // Ligne méta
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
     const meta=[
       t.type||null,
+      t.owner?'Responsable : '+t.owner:null,
+      t.domain?'Domaine : '+t.domain:null,
       t.days?t.days+' jour(s)':null,
       t.dateStart?'Début : '+t.dateStart:null,
       t.dateEnd?'Fin : '+t.dateEnd:null,
-      'Statut : '+STATUS[t.status]
+      'Statut : '+STATUS[t.status]+(t.status==='fail'&&t.failClass?' (Classe '+t.failClass+')':'')
     ].filter(Boolean).join('   ·   ');
-    if(meta){doc.text(meta,M+4,y);y+=6;}
+    if(meta){const ls=doc.splitTextToSize(meta,CW-8);doc.text(ls,M+4,y);y+=ls.length*5;}
+
     // Appartenance
     const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
     if(t.isRnD||linkedCerts.length){
       chk(8);
       const parts=(t.isRnD?['R&D Interne']:[]).concat(linkedCerts.map(c=>c.name));
-      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Appartenance :',M+4,y);
-      doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+      bold('Appartenance :',M+4,y,[60,60,60]);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
       const ls=doc.splitTextToSize(parts.join(', '),CW-38);
       doc.text(ls,M+32,y);y+=ls.length*4.5+1;
     }
-    if(t.material){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Matériel :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.material,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
-    if(t.description){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Protocole :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.description,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
-    if((t.deliverables||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Livrables :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);t.deliverables.forEach(d=>{chk(5);doc.text('• '+d,M+8,y);y+=4.8;});}
-    if((t.attachments||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Pièces jointes ('+t.attachments.length+') :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);t.attachments.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});}
+
+    // Champs texte
+    block('Matériel / équipement',t.material);
+    block('Protocole / description',t.description);
+
+    // Livrables
+    if((t.deliverables||[]).length){
+      chk(10);bold('Livrables :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
+      t.deliverables.forEach(d=>{chk(5);doc.text('• '+d,M+8,y);y+=4.8;});
+    }
+
+    // Liens entre tests
+    const links=(t.links||[]).filter(l=>tests.find(x=>x.id===l.testId));
+    if(links.length){
+      chk(10);bold('Liens entre tests :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
+      links.forEach(l=>{
+        const linked=tests.find(x=>x.id===l.testId);
+        if(!linked) return;
+        const type=l.type==='depends'?'Dépend de':l.type==='blocks'?'Bloque':'Lié à';
+        chk(5);doc.text('• '+type+' : '+linked.name,M+8,y);y+=4.8;
+      });
+    }
+
+    // Pièces jointes — Référence
+    const refItems=_refCache[t.id]?_refCache[t.id].items:[];
+    if(refItems.length){
+      chk(10);bold('Documents de référence ('+refItems.length+') :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+      refItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
+    }
+
+    // Pièces jointes — Rapports
+    const rptItems=_attCache[t.id]?_attCache[t.id].items:(t.attachments||[]);
+    if(rptItems.length){
+      chk(10);bold('Comptes rendus & livrables ('+rptItems.length+') :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+      rptItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
+    }
+
     y+=6;doc.setDrawColor(235,235,235);doc.line(M,y-2,W-M,y-2);
   });
+
   if(!tests.length){doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(160,160,160);doc.text('Aucun test enregistré.',M,y);}
   doc.save('registre-tests-labo.pdf');
   toast('PDF exporté avec succès.','success');

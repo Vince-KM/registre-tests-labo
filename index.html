@@ -2226,7 +2226,13 @@ function toast(msg,type='info'){
 }
 
 /* ---- EXPORT EXCEL ---- */
-function exportExcel(){
+async function exportExcel(){
+  // Charge les PJ manquantes avant export
+  toast('Préparation de l\'export…','info');
+  for(const t of tests){
+    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+  }
   const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Materiel / equipement','Description / protocole','Livrables','R&D','Certifications','Docs de reference','Comptes rendus & livrables']];
   tests.forEach(function(t,i){
     var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
@@ -2368,7 +2374,13 @@ function renderCalendar(){
 }
 
 /* ---- PDF EXPORT ---- */
-function exportPDF(){
+async function exportPDF(){
+  // Charge les PJ manquantes avant export
+  toast('Préparation de l\'export…','info');
+  for(const t of tests){
+    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+  }
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,M=16,CW=W-M*2;let y=20;
   const chk=(n=12)=>{if(y+n>275){doc.addPage();y=18;}};
@@ -2405,7 +2417,23 @@ function exportPDF(){
     if(t.material){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Matériel :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.material,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
     if(t.description){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Protocole :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.description,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
     if((t.deliverables||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Livrables :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);t.deliverables.forEach(d=>{chk(5);doc.text('• '+d,M+8,y);y+=4.8;});}
-    if((t.attachments||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Pièces jointes ('+t.attachments.length+') :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);t.attachments.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});}
+    const refItems = _refCache[t.id]?_refCache[t.id].items:[];
+    const reportItems = _attCache[t.id]?_attCache[t.id].items:(t.attachments||[]);
+    const totalPJ = refItems.length + reportItems.length;
+    if(totalPJ){
+      chk(10);
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);
+      doc.text('Pièces jointes ('+totalPJ+') :',M+4,y);y+=5;
+      doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
+      if(refItems.length){
+        chk(5);doc.setFont('helvetica','italic');doc.text('Documents de référence :',M+8,y);y+=4.5;doc.setFont('helvetica','normal');
+        refItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+12,y);y+=4.8;});
+      }
+      if(reportItems.length){
+        chk(5);doc.setFont('helvetica','italic');doc.text('Comptes rendus & livrables :',M+8,y);y+=4.5;doc.setFont('helvetica','normal');
+        reportItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+12,y);y+=4.8;});
+      }
+    }
     y+=6;doc.setDrawColor(235,235,235);doc.line(M,y-2,W-M,y-2);
   });
   if(!tests.length){doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(160,160,160);doc.text('Aucun test enregistré.',M,y);}

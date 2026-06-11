@@ -317,48 +317,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .empty{text-align:center;padding:4rem 2rem;color:var(--text3);}
 .empty p{color:var(--text2);}
 
-/* ALERTE RETARD */
-.chip-late{background:rgba(244,63,94,.15);color:#f43f5e;border:1px solid rgba(244,63,94,.3);animation:pulse-late 2s infinite;}
-@keyframes pulse-late{0%,100%{opacity:1;}50%{opacity:.6;}}
-.card-late{border-color:rgba(244,63,94,.35)!important;box-shadow:0 0 0 1px rgba(244,63,94,.1)!important;}
-
-/* CALENDRIER */
-.cal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:2rem 1rem;overflow-y:auto;}
-.cal-overlay.hidden{display:none;}
-.cal-modal{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius-lg);width:min(1100px,100%);box-shadow:var(--shadow);animation:slideUp .22s ease;}
-.cal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
-.cal-header h2{font-family:var(--title);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--navy);}
-.cal-nav{display:flex;align-items:center;gap:8px;}
-.cal-nav-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:6px 12px;cursor:pointer;color:var(--text2);font-family:var(--font);font-size:13px;transition:all .15s;}
-.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
-.cal-period{font-family:var(--title);font-size:15px;font-weight:700;color:var(--navy);min-width:160px;text-align:center;}
-.cal-mode-btns{display:flex;gap:6px;}
-.cal-mode-btn{padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s;}
-.cal-mode-btn.active{background:var(--accent);border-color:transparent;color:#fff;}
-.cal-body{padding:16px 20px 20px;overflow-x:auto;}
-.cal-day-headers{display:flex;border-bottom:1px solid var(--border);margin-bottom:6px;}
-.cal-day-hd{flex:1;text-align:center;font-size:11px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:6px 2px;}
-.cal-week-row{display:flex;gap:3px;margin-bottom:3px;}
-.cal-day-cell{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:4px 5px;min-height:76px;}
-.cal-day-cell.other-month{opacity:.4;}
-.cal-day-cell.today{border-color:var(--accent);background:var(--accent-dim);}
-.cal-day-num{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:3px;font-family:var(--mono);}
-.cal-day-cell.today .cal-day-num{color:var(--accent);}
-.cal-test-block{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s;display:block;}
-.cal-test-block:hover{opacity:.75;}
-.cal-test-block.status-pending{background:rgba(245,158,11,.2);color:#d97706;}
-.cal-test-block.status-progress{background:rgba(56,189,248,.2);color:#0284c7;}
-.cal-test-block.status-done{background:rgba(34,211,160,.2);color:#059669;}
-.cal-test-block.status-fail{background:rgba(244,63,94,.2);color:#e11d48;}
-.cal-legend{display:flex;gap:16px;padding:12px 20px;border-top:1px solid var(--border);flex-wrap:wrap;}
-.cal-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
-.cal-legend-dot{width:10px;height:10px;border-radius:3px;}
-.cal-week-grid{display:flex;gap:3px;}
-.cal-week-col{flex:1;min-height:380px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 6px;}
-.cal-week-col.today{border-color:var(--accent);background:var(--accent-dim);}
-.cal-week-col-hd{font-size:11px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;text-align:center;}
-.cal-week-col.today .cal-week-col-hd{color:var(--accent);}
-
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
   .info-row{grid-template-columns:1fr 1fr;}
@@ -442,10 +400,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div class="header-actions">
         <button class="btn-preview-mode" id="btn-global-preview" onclick="toggleGlobalPreview()"><i class="ti ti-eye" style="font-size:15px;"></i> Aperçu</button>
-        <button class="btn" onclick="openCalendar()"><i class="ti ti-calendar-month"></i> Calendrier</button>
         <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
-        <button class="btn" onclick="exportPDF()"><i class="ti ti-file-type-pdf"></i> PDF</button>
-        <button class="btn" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+        <button class="btn" onclick="exportPDF()"><i class="ti ti-download"></i> Export PDF</button>
         <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
       </div>
     </div>
@@ -499,9 +455,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <select class="filter-select" id="filter-cert" onchange="render()">
       <option value="">Toutes les certifs</option>
       <option value="rnd">R&amp;D Interne</option>
-    </select>
-    <select class="filter-select" id="filter-domain" onchange="render()">
-      <option value="">Tous les domaines</option>
     </select>
   </div>
   </div>
@@ -582,35 +535,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <input type="text" id="c-desc" class="cert-add-desc" placeholder="Description courte (optionnel — ex : Condensateurs EDLC, vibration/choc)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewCert();}"/>
         <button class="btn primary sm" onclick="saveNewCert()"><i class="ti ti-plus"></i> Ajouter</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CALENDRIER -->
-<div class="cal-overlay hidden" id="cal-overlay">
-  <div class="cal-modal">
-    <div class="cal-header">
-      <h2><i class="ti ti-calendar-month" style="color:var(--accent);font-size:18px;"></i> Calendrier des tests</h2>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div class="cal-mode-btns">
-          <button class="cal-mode-btn active" id="cal-btn-month" onclick="setCalMode('month')">Mois</button>
-          <button class="cal-mode-btn" id="cal-btn-week" onclick="setCalMode('week')">Semaine</button>
-        </div>
-        <div class="cal-nav">
-          <button class="cal-nav-btn" onclick="calNav(-1)"><i class="ti ti-chevron-left"></i></button>
-          <span class="cal-period" id="cal-period"></span>
-          <button class="cal-nav-btn" onclick="calNav(1)"><i class="ti ti-chevron-right"></i></button>
-          <button class="cal-nav-btn" onclick="calToday()">Auj.</button>
-        </div>
-        <button class="modal-close" onclick="closeCalendar()"><i class="ti ti-x"></i></button>
-      </div>
-    </div>
-    <div class="cal-body" id="cal-body"></div>
-    <div class="cal-legend">
-      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(245,158,11,.5);"></div> En attente</div>
-      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(56,189,248,.5);"></div> En cours</div>
-      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(34,211,160,.5);"></div> Valid&eacute;</div>
-      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(244,63,94,.5);"></div> &Eacute;chec</div>
     </div>
   </div>
 </div>
@@ -1063,13 +987,11 @@ function filtered(){
   const ft=document.getElementById('filter-type')?.value||'';
   const fs=document.getElementById('filter-status')?.value||'';
   const fc=document.getElementById('filter-cert')?.value||'';
-  const fd=(document.getElementById('filter-domain')?.value||'').toLowerCase();
   return tests.filter(t=>{
     if(ft&&t.type!==ft)return false;
     if(fs&&t.status!==fs)return false;
     if(fc==='rnd'&&!t.isRnD)return false;
     if(fc&&fc!=='rnd'&&!(t.certIds||[]).includes(fc))return false;
-    if(fd&&(t.domain||'').toLowerCase()!==fd)return false;
     if(q&&!t.name.toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q)&&!(t.type||'').toLowerCase().includes(q)&&!(t.domain||'').toLowerCase().includes(q))return false;
     return true;
   });
@@ -1083,13 +1005,6 @@ function render(){
     // Utilise le vrai compte SharePoint si disponible, sinon le JSON local
     totalFiles += _attCount[t.id] !== undefined ? _attCount[t.id] : (t.attachments||[]).length;
   });
-  const domainSel=document.getElementById('filter-domain');
-  if(domainSel){
-    const cur=domainSel.value;
-    const domains=[...new Set(tests.map(t=>t.domain).filter(Boolean))].sort();
-    domainSel.innerHTML='<option value="">Tous les domaines</option>'+domains.map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>').join('');
-    domainSel.value=cur;
-  }
   document.getElementById('s-total').textContent=tests.length;
   document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
   document.getElementById('s-deliv').textContent=totalDeliv;
@@ -1127,8 +1042,7 @@ function render(){
     if(dateSub&&t.days) dateSub+=` · ${t.days} j`;
     else if(t.days&&!dateSub) dateSub=`${t.days} jour${parseFloat(t.days)>1?'s':''}`;
 
-    const isLate=t.status!=='done'&&t.status!=='fail'&&t.dateEnd&&(new Date(t.dateEnd)<(()=>{const d=new Date();d.setHours(0,0,0,0);return d;})());
-    return `<div class="test-card${isOpen?' expanded':''}${isEditing?' editing':''}${isLate?' card-late':''}" id="card-${t.id}">
+    return `<div class="test-card${isOpen?' expanded':''}${isEditing?' editing':''}" id="card-${t.id}">
       <div class="card-head" onclick="toggle('${t.id}')">
         <span class="card-num">${String(i+1).padStart(2,'0')}</span>
         <div class="card-info">
@@ -1144,7 +1058,6 @@ function render(){
           ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
           ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
           <span class="chip ${STATUS_CLASS[t.status]}">${STATUS[t.status]}</span>
-          ${(t.status!=='done'&&t.status!=='fail'&&t.dateEnd&&new Date(t.dateEnd)<(()=>{const d=new Date();d.setHours(0,0,0,0);return d;})())?'<span class="chip chip-late"><i class="ti ti-alarm" style="font-size:11px;"></i> En retard</span>':''}
           ${isEditing?`<span class="chip" style="background:rgba(34,211,160,.15);color:var(--success);"><i class="ti ti-pencil" style="font-size:11px;"></i> Édition</span>`:''}
         </div>
         <i class="ti ti-chevron-down chevron"></i>
@@ -2225,144 +2138,6 @@ function toast(msg,type='info'){
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},2400);
 }
 
-/* ---- EXPORT EXCEL ---- */
-function exportExcel(){
-  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Livrables','R&D','Certifications']];
-  tests.forEach(function(t,i){
-    var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
-    rows.push([
-      i+1, t.name, t.type||'', STATUS[t.status]||'',
-      (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
-      t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
-      (t.deliverables||[]).join(' | '),
-      t.isRnD?'Oui':'', certs
-    ]);
-  });
-    var bom = '﻿';
-  var crlf = String.fromCharCode(13,10);
-  var lines = rows.map(function(r){
-    return r.map(function(c){
-      return '"' + String(c).replace(/"/g,'""') + '"';
-    }).join(';');
-  }).join(crlf);
-  var csv = bom + lines;
-  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href=url; a.download='registre-tests-labo.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},5000);
-  toast('Export Excel téléchargé.','success');
-}
-
-/* ---- CALENDRIER ---- */
-var _calDate = new Date();
-var _calMode = 'month';
-var CAL_DAYS_FR = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-var CAL_MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-
-function openCalendar(){ document.getElementById('cal-overlay').classList.remove('hidden'); renderCalendar(); }
-function closeCalendar(){ document.getElementById('cal-overlay').classList.add('hidden'); }
-function setCalMode(m){
-  _calMode=m;
-  document.getElementById('cal-btn-month').classList.toggle('active',m==='month');
-  document.getElementById('cal-btn-week').classList.toggle('active',m==='week');
-  renderCalendar();
-}
-function calNav(dir){
-  if(_calMode==='month'){ _calDate.setMonth(_calDate.getMonth()+dir); }
-  else { _calDate.setDate(_calDate.getDate()+dir*7); }
-  renderCalendar();
-}
-function calToday(){ _calDate=new Date(); renderCalendar(); }
-
-function renderCalendar(){
-  var body=document.getElementById('cal-body');
-  var periodEl=document.getElementById('cal-period');
-  var today=new Date(); today.setHours(0,0,0,0);
-
-  if(_calMode==='month'){
-    var year=_calDate.getFullYear(), month=_calDate.getMonth();
-    periodEl.textContent=CAL_MONTHS_FR[month]+' '+year;
-    var firstDay=new Date(year,month,1);
-    var lastDay=new Date(year,month+1,0);
-    var startGrid=new Date(firstDay);
-    var dow=(firstDay.getDay()+6)%7;
-    startGrid.setDate(startGrid.getDate()-dow);
-
-    var html='<div class="cal-day-headers">';
-    CAL_DAYS_FR.forEach(function(d){ html+='<div class="cal-day-hd">'+d+'</div>'; });
-    html+='</div>';
-
-    var cur=new Date(startGrid);
-    var weekCount=0;
-    while((cur<=lastDay || (cur.getDay()+6)%7!==0) && weekCount<7){
-      html+='<div class="cal-week-row">';
-      for(var i=0;i<7;i++){
-        var isToday=cur.getTime()===today.getTime();
-        var isOther=cur.getMonth()!==month;
-        var curCopy=new Date(cur); curCopy.setHours(0,0,0,0);
-        var dayTests=tests.filter(function(t){
-          if(!t.dateStart&&!t.dateEnd) return false;
-          var ts=t.dateStart?new Date(t.dateStart):null;
-          var te=t.dateEnd?new Date(t.dateEnd):ts;
-          if(!ts) return false;
-          var s=new Date(ts); s.setHours(0,0,0,0);
-          var e=new Date(te||ts); e.setHours(0,0,0,0);
-          return curCopy>=s && curCopy<=e;
-        });
-        html+='<div class="cal-day-cell'+(isOther?' other-month':'')+(isToday?' today':'')+'">';
-        html+='<div class="cal-day-num">'+cur.getDate()+'</div>';
-        dayTests.slice(0,3).forEach(function(t){
-          var name=t.name.length>18?t.name.slice(0,17)+'…':t.name;
-          var tid=t.id;
-          html+='<div class="cal-test-block status-'+t.status+'" onclick="closeCalendar();setTimeout(function(){var el=document.getElementById(&#39;card-'+tid+'&#39;);if(el){el.scrollIntoView({behavior:&#39;smooth&#39;,block:&#39;center&#39;});toggle(&#39;'+tid+'&#39;);}},200)" title="'+esc(t.name)+'">'+esc(name)+'</div>';
-        });
-        if(dayTests.length>3) html+='<div style="font-size:9px;color:var(--text3);padding:1px 4px;">+'+(dayTests.length-3)+' autre'+(dayTests.length-3>1?'s':'')+'</div>';
-        html+='</div>';
-        cur.setDate(cur.getDate()+1);
-      }
-      html+='</div>';
-      weekCount++;
-      if(cur>lastDay && (cur.getDay()+6)%7===0) break;
-    }
-    body.innerHTML=html;
-
-  } else {
-    var dow2=(_calDate.getDay()+6)%7;
-    var monday=new Date(_calDate); monday.setDate(_calDate.getDate()-dow2); monday.setHours(0,0,0,0);
-    var sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
-    periodEl.textContent=monday.getDate()+' '+CAL_MONTHS_FR[monday.getMonth()].slice(0,3)+' — '+sunday.getDate()+' '+CAL_MONTHS_FR[sunday.getMonth()].slice(0,3)+' '+sunday.getFullYear();
-
-    var html2='<div class="cal-week-grid">';
-    for(var i2=0;i2<7;i2++){
-      var day=new Date(monday); day.setDate(monday.getDate()+i2);
-      var isToday2=day.getTime()===today.getTime();
-      var dayCopy=new Date(day); dayCopy.setHours(0,0,0,0);
-      var dayTests2=tests.filter(function(t){
-        if(!t.dateStart&&!t.dateEnd) return false;
-        var ts=t.dateStart?new Date(t.dateStart):null;
-        var te=t.dateEnd?new Date(t.dateEnd):ts;
-        if(!ts) return false;
-        var s=new Date(ts); s.setHours(0,0,0,0);
-        var e=new Date(te||ts); e.setHours(0,0,0,0);
-        return dayCopy>=s && dayCopy<=e;
-      });
-      html2+='<div class="cal-week-col'+(isToday2?' today':'')+'">';
-      html2+='<div class="cal-week-col-hd">'+CAL_DAYS_FR[i2]+' '+day.getDate()+'</div>';
-      dayTests2.forEach(function(t){
-        var name=t.name.length>22?t.name.slice(0,21)+'…':t.name;
-        var tid2=t.id;
-        html2+='<div class="cal-test-block status-'+t.status+'" style="margin-bottom:4px;padding:4px 6px;font-size:11px;white-space:normal;line-height:1.3;" onclick="closeCalendar();setTimeout(function(){var el=document.getElementById(&#39;card-'+tid2+'&#39;);if(el){el.scrollIntoView({behavior:&#39;smooth&#39;,block:&#39;center&#39;});toggle(&#39;'+tid2+'&#39;);}},200)" title="'+esc(t.name)+'">'+esc(name)+'</div>';
-      });
-      if(!dayTests2.length) html2+='<div style="font-size:11px;color:var(--text3);text-align:center;padding-top:20px;">—</div>';
-      html2+='</div>';
-    }
-    html2+='</div>';
-    body.innerHTML=html2;
-  }
-}
-
 /* ---- PDF EXPORT ---- */
 function exportPDF(){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -2412,8 +2187,7 @@ function exportPDF(){
 /* ---- EVENTS ---- */
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeCalendar();}});
-document.getElementById('cal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cal-overlay'))closeCalendar();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();}});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser
 function waitForMsal(attempts){

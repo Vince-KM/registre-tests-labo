@@ -1225,6 +1225,23 @@ function renderEquipTable(){
   }
   if(empty) empty.style.display='none';
   tbody.innerHTML = equipments.map((eq,i) => {
+    if(_editingEquipIdx===i){
+      // Mode édition inline
+      return '<tr style="background:rgba(34,211,160,.05);">'
+        +'<td><input type="text" id="eq-edit-type" value="'+esc(eq.type||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--success);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="eq-edit-brand" value="'+esc(eq.brand||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="eq-edit-model" value="'+esc(eq.model||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="eq-edit-serial" value="'+esc(eq.serial||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;"/></td>'
+        +'<td><input type="date" id="eq-edit-last" value="'+esc(eq.lastCalib||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="date" id="eq-edit-next" value="'+esc(eq.nextCalib||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--success);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="number" id="eq-edit-reminder" value="'+esc(eq.reminder||30)+'" min="1" max="365" style="width:60px;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td>'+equipStatusBadge(eq)+'</td>'
+        +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+          +'<button class="btn xs success" onclick="saveEditEquip('+i+')" title="Enregistrer"><i class="ti ti-check"></i></button>'
+          +'<button class="btn xs ghost" onclick="cancelEditEquip()" title="Annuler"><i class="ti ti-x"></i></button>'
+        +'</td>'
+        +'</tr>';
+    }
     return '<tr>'
       +'<td>'+esc(eq.type||'')+'</td>'
       +'<td>'+esc(eq.brand||'—')+'</td>'
@@ -1234,9 +1251,42 @@ function renderEquipTable(){
       +'<td>'+esc(eq.nextCalib||'—')+'</td>'
       +'<td style="text-align:center;">'+esc(eq.reminder||'30')+'</td>'
       +'<td>'+equipStatusBadge(eq)+'</td>'
-      +'<td><button class="btn xs danger-ghost" onclick="deleteEquip('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button></td>'
+      +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+        +'<button class="btn xs ghost" onclick="startEditEquip('+i+')" title="Modifier"><i class="ti ti-pencil"></i></button>'
+        +'<button class="btn xs danger-ghost" onclick="deleteEquip('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button>'
+      +'</td>'
       +'</tr>';
   }).join('');
+}
+
+let _editingEquipIdx = -1;
+
+function startEditEquip(i){
+  _editingEquipIdx = i;
+  renderEquipTable();
+  // Focus sur le champ date prochaine calibration
+  setTimeout(()=>document.getElementById('eq-edit-next')?.focus(), 50);
+}
+
+function cancelEditEquip(){
+  _editingEquipIdx = -1;
+  renderEquipTable();
+}
+
+function saveEditEquip(i){
+  const eq = equipments[i];
+  eq.type      = (document.getElementById('eq-edit-type')?.value||'').trim();
+  eq.brand     = (document.getElementById('eq-edit-brand')?.value||'').trim();
+  eq.model     = (document.getElementById('eq-edit-model')?.value||'').trim();
+  eq.serial    = (document.getElementById('eq-edit-serial')?.value||'').trim();
+  eq.lastCalib = document.getElementById('eq-edit-last')?.value||'';
+  eq.nextCalib = document.getElementById('eq-edit-next')?.value||'';
+  eq.reminder  = parseInt(document.getElementById('eq-edit-reminder')?.value)||30;
+  _editingEquipIdx = -1;
+  persistEquip();
+  renderEquipTable();
+  renderEquipChips('f-equip-chips');
+  toast('"'+equipLabel(eq)+'" mis à jour.','success');
 }
 
 function renderEquipChips(containerId){

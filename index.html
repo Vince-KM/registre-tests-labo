@@ -384,8 +384,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .link-blocks{background:rgba(244,63,94,.15);color:#e11d48;}
 .link-related{background:rgba(107,110,232,.15);color:var(--accent);}
 
+/* ── ÉQUIPEMENTS ── */
+.equip-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:1.5rem 1rem;overflow-y:auto;}
+.equip-overlay.hidden{display:none;}
+.equip-modal{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius-lg);width:min(900px,100%);box-shadow:var(--shadow);animation:slideUp .22s ease;}
+.equip-table{width:100%;border-collapse:collapse;font-size:13px;}
+.equip-table th{font-family:var(--title);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);background:var(--bg3);}
+.equip-table td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);}
+.equip-table tr:hover td{background:rgba(107,110,232,.03);}
+.equip-status-ok{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(5,150,105,.12);color:#059669;}
+.equip-status-soon{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(245,158,11,.12);color:#d97706;}
+.equip-status-late{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(244,63,94,.12);color:#e11d48;animation:pulse-late 2s infinite;}
+.equip-add-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:16px 20px;background:var(--bg3);border-top:1px solid var(--border);}
+.equip-add-grid .full{grid-column:1/-1;}
+.equip-chip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(107,110,232,.2);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.equip-chip:hover{background:rgba(107,110,232,.2);}
+.equip-chips-wrap{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+/* Alerte calibration */
+.calib-alert-banner{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:12px;cursor:pointer;transition:opacity .15s;}
+.calib-alert-banner:hover{opacity:.85;}
+.calib-alert-late{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#e11d48;}
+.calib-alert-soon{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#d97706;}
+
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
+  .equip-add-grid{grid-template-columns:1fr;}
+  .equip-add-grid .full{grid-column:1;}
   .info-row{grid-template-columns:1fr 1fr;}
   .card-chips .chip-type{display:none;}
   .form-grid,.edit-grid,.cert-add-row{grid-template-columns:1fr;}
@@ -458,6 +482,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="btn xs" id="auth-btn" onclick="authAction()"><i class="ti ti-login"></i> Se connecter</button>
   </div></div>
 
+  <div id="calib-alerts"></div>
   <div class="header">
     <div class="header-inner">
       <div>
@@ -469,6 +494,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <button class="btn-preview-mode" id="btn-global-preview" onclick="toggleGlobalPreview()"><i class="ti ti-eye" style="font-size:15px;"></i> Aperçu</button>
         <button class="btn" onclick="openCalendar()"><i class="ti ti-calendar-month"></i> Calendrier</button>
         <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
+        <button class="btn" onclick="openEquipModal()"><i class="ti ti-tool"></i> Équipements</button>
         <button class="btn" onclick="exportPDF()"><i class="ti ti-file-type-pdf"></i> PDF</button>
         <button class="btn" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
         <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
@@ -564,7 +590,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
             <button type="button" class="fail-class-btn" id="f-fc-c" onclick="selectFailClass('f','C')">C — Critique</button>
           </div>
         </div>
-        <div class="field full"><label>Matériel / équipement requis</label><textarea id="f-material" placeholder="Ex : Oscilloscope Tektronix MSO6, charge électronique 600V/100A…"></textarea></div>
+        <div class="field full">
+          <label>Matériel / équipement requis</label>
+          <div class="equip-chips-wrap" id="f-equip-chips"></div>
+          <textarea id="f-material" placeholder="Ex : Oscilloscope Tektronix MSO6, charge électronique 600V/100A… ou sélectionnez ci-dessus" style="margin-top:6px;"></textarea>
+        </div>
         <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
       </div>
       <div class="sep"></div>
@@ -691,9 +721,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- MODAL ÉQUIPEMENTS -->
+<div class="equip-overlay hidden" id="equip-overlay">
+  <div class="equip-modal">
+    <div class="modal-header">
+      <h2><i class="ti ti-tool" style="color:var(--accent);font-size:18px;"></i> Mes équipements de test</h2>
+      <button class="modal-close" onclick="closeEquipModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:0 20px 8px;overflow-x:auto;">
+      <table class="equip-table" id="equip-table">
+        <thead>
+          <tr>
+            <th>Type</th><th>Marque</th><th>Modèle</th><th>N° série</th>
+            <th>Dernière calib.</th><th>Prochaine calib.</th><th>Rappel (j)</th>
+            <th>Statut</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="equip-tbody"></tbody>
+      </table>
+      <div id="equip-empty" style="text-align:center;padding:2rem;color:var(--text3);display:none;">
+        <i class="ti ti-tool" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3;"></i>
+        Aucun équipement enregistré. Ajoutez-en ci-dessous.
+      </div>
+    </div>
+    <!-- Formulaire ajout -->
+    <div class="equip-add-grid">
+      <div class="field"><label>Type d'appareil *</label><input type="text" id="eq-type" placeholder="Ex : Oscilloscope, Charge élec…"/></div>
+      <div class="field"><label>Marque</label><input type="text" id="eq-brand" placeholder="Ex : Tektronix, Keysight…"/></div>
+      <div class="field"><label>Modèle</label><input type="text" id="eq-model" placeholder="Ex : MSO64, N6700B…"/></div>
+      <div class="field"><label>N° de série</label><input type="text" id="eq-serial" placeholder="Ex : C012345"/></div>
+      <div class="field"><label>Dernière calibration</label><input type="date" id="eq-last-calib"/></div>
+      <div class="field"><label>Prochaine calibration</label><input type="date" id="eq-next-calib"/></div>
+      <div class="field"><label>Rappel (jours avant)</label><input type="number" id="eq-reminder" min="1" max="365" placeholder="Ex : 30" value="30"/></div>
+      <div class="field full" style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="btn primary" onclick="saveEquip()" style="flex-shrink:0;"><i class="ti ti-plus"></i> Ajouter</button>
+        <span style="font-size:11px;color:var(--text3);padding-bottom:2px;">Appuyez sur Entrée ou cliquez Ajouter pour enregistrer</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let tests = [];
 let certifications = [];
+let equipments = []; // liste des équipements du labo
 let tempD = [];
 let editingCards = {};
 let _previewMode = false; // mode aperçu global activé
@@ -752,6 +823,7 @@ const SP_CONFIG = {
   folderPath: 'Labo',
   testsFile: 'lab_tests_v3.json',
   certsFile: 'lab_certs_v1.json',
+  equipFile: 'lab_equip_v1.json',
 
   // -------------------------------------------------------
   // PARTAGE ÉQUIPE — à remplir pour que tout le monde
@@ -883,6 +955,7 @@ async function loadFromSharePoint(){
     setTimeout(()=>setSyncMsg(''), 3000);
     startPolling();
     setTimeout(()=>refreshAllAttCounts(), 1500);
+    checkCalibAlerts();
   } catch(e){
     loadLocalFallback();
     toast('Erreur de synchronisation SharePoint — données locales chargées.','danger');
@@ -894,6 +967,7 @@ async function loadFromSharePoint(){
 function loadLocalFallback(){
   try{const r=localStorage.getItem('lab_tests_v3');if(r)tests=JSON.parse(r);}catch(e){tests=[];}
   try{const r=localStorage.getItem('lab_certs_v1');if(r)certifications=JSON.parse(r);}catch(e){certifications=[];}
+  try{const r=localStorage.getItem('lab_equip_v1');if(r)equipments=JSON.parse(r);}catch(e){equipments=[];}
   updateCertFilter();
   render();
 }
@@ -971,6 +1045,16 @@ async function persist(skipMerge=false){
     setTimeout(()=>setSyncMsg(''), 3000);
   }
   render();
+}
+
+async function persistEquip(){
+  try{localStorage.setItem('lab_equip_v1',JSON.stringify(equipments));}catch(e){}
+  if(!currentAccount) return;
+  try{
+    const token = await getToken();
+    if(token) await saveToSharePoint(SP_CONFIG.equipFile, equipments);
+  }catch(e){}
+  checkCalibAlerts();
 }
 
 async function persistCerts(){
@@ -1092,24 +1176,184 @@ async function refreshAllAttCounts(){
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
+/* ══════════════════════════════════════════════════
+   MODULE ÉQUIPEMENTS
+══════════════════════════════════════════════════ */
+
+function equipCalibStatus(eq){
+  if(!eq.nextCalib) return 'none';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const next  = new Date(eq.nextCalib);
+  const diff  = Math.round((next - today) / 86400000);
+  const remind = parseInt(eq.reminder)||30;
+  if(diff < 0)  return 'late';
+  if(diff <= remind) return 'soon';
+  return 'ok';
+}
+
+function equipStatusBadge(eq){
+  const s = equipCalibStatus(eq);
+  if(s==='late')  return '<span class="equip-status-late"><i class="ti ti-alert-circle" style="font-size:11px;"></i> Dépassée</span>';
+  if(s==='soon'){
+    const diff = Math.round((new Date(eq.nextCalib)-new Date())/86400000);
+    return '<span class="equip-status-soon"><i class="ti ti-alarm" style="font-size:11px;"></i> Dans '+diff+' j</span>';
+  }
+  if(s==='ok') return '<span class="equip-status-ok"><i class="ti ti-check" style="font-size:11px;"></i> OK</span>';
+  return '<span style="color:var(--text3);font-size:12px;">—</span>';
+}
+
+function equipLabel(eq){
+  return [eq.type, eq.brand, eq.model, eq.serial ? '('+eq.serial+')' : ''].filter(Boolean).join(' ');
+}
+
+function openEquipModal(){
+  renderEquipTable();
+  renderEquipChips('f-equip-chips');
+  document.getElementById('equip-overlay').classList.remove('hidden');
+}
+function closeEquipModal(){
+  document.getElementById('equip-overlay').classList.add('hidden');
+}
+
+function renderEquipTable(){
+  const tbody = document.getElementById('equip-tbody');
+  const empty = document.getElementById('equip-empty');
+  if(!equipments.length){
+    tbody.innerHTML = '';
+    if(empty) empty.style.display='block';
+    return;
+  }
+  if(empty) empty.style.display='none';
+  tbody.innerHTML = equipments.map((eq,i) => {
+    return '<tr>'
+      +'<td>'+esc(eq.type||'')+'</td>'
+      +'<td>'+esc(eq.brand||'—')+'</td>'
+      +'<td>'+esc(eq.model||'—')+'</td>'
+      +'<td><code style="font-family:var(--mono);font-size:12px;background:var(--bg3);padding:1px 6px;border-radius:4px;">'+esc(eq.serial||'—')+'</code></td>'
+      +'<td>'+esc(eq.lastCalib||'—')+'</td>'
+      +'<td>'+esc(eq.nextCalib||'—')+'</td>'
+      +'<td style="text-align:center;">'+esc(eq.reminder||'30')+'</td>'
+      +'<td>'+equipStatusBadge(eq)+'</td>'
+      +'<td><button class="btn xs danger-ghost" onclick="deleteEquip('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function renderEquipChips(containerId){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(!equipments.length){ el.innerHTML='<span style="font-size:11px;color:var(--text3);">Aucun équipement enregistré.</span>'; return; }
+  el.innerHTML = equipments.map(function(eq){
+    var label = equipLabel(eq);
+    var display = esc(eq.type+(eq.model?' — '+eq.model:''));
+    return '<span class="equip-chip" onclick="insertEquipInField(&#39;'+containerId+'&#39;,&#39;'+label.replace(/&/g,'&amp;').replace(/'/g,'&#39;')+'&#39;)" title="Cliquer pour ajouter dans le champ matériel">'
+      +'<i class="ti ti-tool" style="font-size:11px;"></i> '+display+'</span>';
+  }).join('');
+}
+
+function insertEquipInField(chipsContainerId, label){
+  // Déduire l'ID du textarea depuis l'ID du conteneur chips
+  let taId;
+  if(chipsContainerId==='f-equip-chips') taId='f-material';
+  else taId = chipsContainerId.replace('e-equip-chips-','e-material-');
+  const ta = document.getElementById(taId);
+  if(!ta) return;
+  const cur = ta.value.trim();
+  ta.value = cur ? cur + ', ' + label : label;
+  ta.focus();
+}
+
+function saveEquip(){
+  const type  = (document.getElementById('eq-type')?.value||'').trim();
+  if(!type){ document.getElementById('eq-type')?.focus(); toast("Le type d'appareil est requis.","danger"); return; }
+  const eq = {
+    id: uid(),
+    type,
+    brand:      (document.getElementById('eq-brand')?.value||'').trim(),
+    model:      (document.getElementById('eq-model')?.value||'').trim(),
+    serial:     (document.getElementById('eq-serial')?.value||'').trim(),
+    lastCalib:  document.getElementById('eq-last-calib')?.value||'',
+    nextCalib:  document.getElementById('eq-next-calib')?.value||'',
+    reminder:   parseInt(document.getElementById('eq-reminder')?.value)||30,
+  };
+  equipments.push(eq);
+  persistEquip();
+  // Reset form
+  ['eq-type','eq-brand','eq-model','eq-serial','eq-last-calib','eq-next-calib'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('eq-reminder').value='30';
+  renderEquipTable();
+  renderEquipChips('f-equip-chips');
+  toast('"'+type+'" ajouté.','success');
+}
+
+function deleteEquip(i){
+  const eq = equipments[i];
+  if(!confirm('Supprimer "'+equipLabel(eq)+'" ?')) return;
+  equipments.splice(i,1);
+  persistEquip();
+  renderEquipTable();
+  renderEquipChips('f-equip-chips');
+  toast('Équipement supprimé.','info');
+}
+
+/* ── Alertes calibration au chargement ── */
+function checkCalibAlerts(){
+  const container = document.getElementById('calib-alerts');
+  if(!container) return;
+  const late = equipments.filter(eq=>equipCalibStatus(eq)==='late');
+  const soon = equipments.filter(eq=>equipCalibStatus(eq)==='soon');
+  let html = '';
+  if(late.length){
+    html += '<div class="calib-alert-banner calib-alert-late" onclick="openEquipModal()">'
+      +'<i class="ti ti-alert-circle" style="font-size:18px;flex-shrink:0;"></i>'
+      +'<div><strong>'+late.length+' équipement'+(late.length>1?'s':'')+' en retard de calibration</strong> — '
+      +late.map(e=>esc(equipLabel(e))).join(', ')
+      +'<br><span style="font-size:11px;opacity:.8;">Cliquez pour voir le détail</span></div></div>';
+  }
+  if(soon.length){
+    html += '<div class="calib-alert-banner calib-alert-soon" onclick="openEquipModal()">'
+      +'<i class="ti ti-alarm" style="font-size:18px;flex-shrink:0;"></i>'
+      +'<div><strong>'+soon.length+' équipement'+(soon.length>1?'s':'')+' à recalibrer bientôt</strong> — '
+      +soon.map(e=>esc(equipLabel(e))).join(', ')
+      +'<br><span style="font-size:11px;opacity:.8;">Cliquez pour voir le détail</span></div></div>';
+  }
+  container.innerHTML = html ? '<div style="max-width:960px;margin:0 auto;padding:0 40px 0;">'+html+'</div>' : '';
+}
+
 /* ---- CONFLITS DE PLANNING ---- */
 function detectConflicts(t){
-  if(!t.dateStart||!t.dateEnd||!t.material) return [];
+  if(!t.dateStart||!t.dateEnd) return [];
   const s1=new Date(t.dateStart); const e1=new Date(t.dateEnd);
-  const matA=(t.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
+  const matA=(t.material||'').toLowerCase();
+
+  // Mots-clés de détection : équipements enregistrés + mots du champ matériel
+  const equipsA = equipments.filter(eq=>matA.includes((eq.type||'').toLowerCase())||matA.includes((eq.model||'').toLowerCase())||matA.includes((eq.serial||'').toLowerCase())).map(eq=>eq.id);
+
   return tests.filter(other=>{
-    if(other.id===t.id||!other.dateStart||!other.dateEnd||!other.material) return false;
+    if(other.id===t.id||!other.dateStart||!other.dateEnd) return false;
     const s2=new Date(other.dateStart); const e2=new Date(other.dateEnd);
-    if(s1>e2||s2>e1) return false; // pas de chevauchement dates
-    const matB=(other.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
-    const common=matA.find(m=>m.length>3&&matB.some(mb=>mb.includes(m)||m.includes(mb)));
-    if(!common) return false;
-    return {name:other.name, equipment:common};
+    if(s1>e2||s2>e1) return false;
+    const matB=(other.material||'').toLowerCase();
+    // Conflit via équipements enregistrés
+    const sharedEquip = equipments.find(eq=>{
+      if(!equipsA.includes(eq.id)) return false;
+      return matB.includes((eq.type||'').toLowerCase())||matB.includes((eq.model||'').toLowerCase())||matB.includes((eq.serial||'').toLowerCase());
+    });
+    if(sharedEquip) return true;
+    // Fallback : mots-clés bruts > 4 chars
+    const wordsA = matA.split(/[,;\n\s]+/).filter(w=>w.length>4);
+    return wordsA.some(w=>matB.includes(w));
   }).map(other=>{
-    const matB=(other.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
-    const matA2=(t.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
-    const common=matA2.find(m=>m.length>3&&matB.some(mb=>mb.includes(m)||m.includes(mb)))||'';
-    return {name:other.name, equipment:common};
+    const matB=(other.material||'').toLowerCase();
+    const sharedEquip = equipments.find(eq=>{
+      return (matA.includes((eq.type||'').toLowerCase())||matA.includes((eq.model||'').toLowerCase()))
+          && (matB.includes((eq.type||'').toLowerCase())||matB.includes((eq.model||'').toLowerCase()));
+    });
+    const equipment = sharedEquip ? equipLabel(sharedEquip) : 
+      (t.material||'').split(/[,;\n]+/).map(m=>m.trim()).find(m=>m.length>4&&(other.material||'').toLowerCase().includes(m.toLowerCase()))||'équipement commun';
+    return {name:other.name, equipment};
   });
 }
 
@@ -1455,7 +1699,11 @@ function renderEditForm(t, delivs){
             <button type="button" class="fail-class-btn${t.failClass==='C'?' selected-c':''}" id="e-fc-c-${t.id}" onclick="selectFailClass('e-${t.id}','C')">C — Critique</button>
           </div>
         </div>
-        <div class="efield full"><label>Matériel / équipement requis</label><textarea id="e-material-${t.id}" placeholder="Équipements, instruments de mesure…">${esc(t.material||'')}</textarea></div>
+        <div class="efield full">
+          <label>Matériel / équipement requis</label>
+          <div class="equip-chips-wrap" id="e-equip-chips-${t.id}"></div>
+          <textarea id="e-material-${t.id}" placeholder="Équipements, instruments de mesure… ou sélectionnez ci-dessus" style="margin-top:6px;">${esc(t.material||'')}</textarea>
+        </div>
         <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
       </div>
       <div class="edit-sep"></div>
@@ -1493,6 +1741,7 @@ function startEdit(id){
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
   if(body){body.classList.add('open');card.classList.add('expanded','editing');}
+  setTimeout(()=>renderEquipChips('e-equip-chips-'+id),50);
 }
 
 function cancelEdit(id){
@@ -1707,6 +1956,7 @@ function openModal(){
   document.getElementById('f-status').value='pending';
   document.getElementById('f-deliv-list').innerHTML='';
   renderModalCerts();
+  setTimeout(()=>renderEquipChips('f-equip-chips'),50);
   document.getElementById('overlay').classList.remove('hidden');
   setTimeout(()=>document.getElementById('f-name').focus(),80);
 }
@@ -2737,7 +2987,8 @@ async function exportPDF(){
 /* ---- EVENTS ---- */
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeCalendar();}});
+document.getElementById('equip-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('equip-overlay'))closeEquipModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeEquipModal();closeCalendar();}});
 document.getElementById('cal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cal-overlay'))closeCalendar();});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser

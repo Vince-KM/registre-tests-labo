@@ -907,8 +907,10 @@ async function refreshAllAttCounts(){
       // ── Mise à jour des compteurs de pièces jointes ──
       const items = await listSpFolder(t.name, t.spFolderId);
       if(items === null) continue;
+      // items = fichiers Rapports ; on additionne aussi Référence
+      const refCount = _refCache[t.id] ? _refCache[t.id].items.length : 0;
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = items.length + localCount;
+      const total = items.length + refCount + localCount;
       const prev = _attCount[t.id];
       _attCache[t.id] = { items, ts: Date.now() };
       _attCount[t.id] = total;
@@ -1615,11 +1617,13 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
       });
     }
     // Met aussi à jour le cache si présent
-    if(section==='ref' && _refCache[testId])
+    if(section==='ref' && _refCache[testId]){
       _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
+      if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
+    }
     if(section==='reports' && _attCache[testId]){
       _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
-      if(t){ const lc=(t.attachments||[]).filter(a=>a.data).length; _attCount[testId]=_attCache[testId].items.length+lc; updateAttChip(testId,_attCount[testId]); }
+      if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
     }
     await persist();
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
@@ -1732,6 +1736,13 @@ async function refreshRefList(testId, forceRefresh){
   }
 }
 
+// Calcule le vrai total de pièces jointes (Rapports + Référence)
+function calcAttCount(testId, t){
+  const reports = _attCache[testId] ? _attCache[testId].items.length : (t.attachments||[]).filter(a=>a.spPath).length;
+  const refs    = _refCache[testId] ? _refCache[testId].items.length : 0;
+  const local   = (t.attachments||[]).filter(a=>a.data).length;
+  return reports + refs + local;
+}
 // Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire
 async function refreshAttList(testId, forceRefresh){
   const t=tests.find(x=>x.id===testId); if(!t) return;
@@ -1810,8 +1821,7 @@ async function refreshAttList(testId, forceRefresh){
   // Met à jour le cache
   _attCache[testId]={ items, ts:Date.now() };
   // Met à jour le compteur réel et le chip dans le header de la carte
-  const localCount = (t.attachments||[]).filter(a=>a.data).length;
-  _attCount[testId] = items.length + localCount;
+  _attCount[testId] = calcAttCount(testId, t);
   updateAttChip(testId, _attCount[testId]);
 
   // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)

@@ -952,13 +952,18 @@ async function loadFromSharePoint(){
     ]);
     if(rTests.ok) tests = await rTests.json(); else tests = [];
     if(rCerts.ok) certifications = await rCerts.json(); else certifications = [];
+    // Équipements : SharePoint si non vide, sinon localStorage
+    const localEquip = ()=>{ try{const r=localStorage.getItem('lab_equip_v1');return r?JSON.parse(r):[];}catch(e){return [];} };
     if(rEquip.ok){
       const remoteEquip = await rEquip.json();
-      // Utilise SharePoint seulement si non vide, sinon garde le local
-      if(remoteEquip && remoteEquip.length > 0) equipments = remoteEquip;
-      else { try{const r=localStorage.getItem('lab_equip_v1');if(r)equipments=JSON.parse(r);}catch(e){} }
+      equipments = (remoteEquip&&remoteEquip.length>0) ? remoteEquip : localEquip();
+      // Si local avait des données et SharePoint était vide, on sync SharePoint
+      if((!remoteEquip||remoteEquip.length===0) && equipments.length>0){
+        const token2=await getToken();
+        if(token2) saveToSharePoint(SP_CONFIG.equipFile, equipments);
+      }
     } else {
-      try{const r=localStorage.getItem('lab_equip_v1');if(r)equipments=JSON.parse(r);}catch(e){}
+      equipments = localEquip();
     }
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Synchronisé');
     setTimeout(()=>setSyncMsg(''), 3000);
@@ -1057,12 +1062,16 @@ async function persist(skipMerge=false){
 }
 
 async function persistEquip(){
+  // Sauvegarde locale immédiate
   try{localStorage.setItem('lab_equip_v1',JSON.stringify(equipments));}catch(e){}
-  if(!currentAccount) return;
+  if(!currentAccount){ checkCalibAlerts(); return; }
   try{
     const token = await getToken();
-    if(token) await saveToSharePoint(SP_CONFIG.equipFile, equipments);
-  }catch(e){}
+    if(token){
+      const ok = await saveToSharePoint(SP_CONFIG.equipFile, equipments);
+      if(!ok) toast('Erreur sauvegarde équipements SharePoint.','danger');
+    }
+  }catch(e){ toast('Erreur sauvegarde équipements.','danger'); }
   checkCalibAlerts();
 }
 

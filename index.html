@@ -359,6 +359,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .cal-week-col-hd{font-size:11px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;text-align:center;}
 .cal-week-col.today .cal-week-col-hd{color:var(--accent);}
 
+/* CONFLITS */
+.chip-conflict{background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.3);}
+.card-conflict{border-color:rgba(245,158,11,.4)!important;}
+.conflict-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:1rem;}
+.conflict-overlay.hidden{display:none;}
+
+/* HISTORIQUE */
+.history-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:1rem;}
+.history-overlay.hidden{display:none;}
+.history-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.history-item:last-child{border-bottom:none;}
+.history-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:5px;}
+.history-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.history-changes{font-size:12px;color:var(--text2);margin-top:4px;}
+.history-change-row{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.history-old{color:var(--danger);text-decoration:line-through;font-size:11px;}
+.history-new{color:var(--success);font-size:11px;}
+
+/* LIENS ENTRE TESTS */
+.link-item{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;margin-bottom:6px;font-size:13px;}
+.link-type-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;flex-shrink:0;}
+.link-depends{background:rgba(56,189,248,.15);color:#0284c7;}
+.link-blocks{background:rgba(244,63,94,.15);color:#e11d48;}
+.link-related{background:rgba(107,110,232,.15);color:var(--accent);}
+
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
   .info-row{grid-template-columns:1fr 1fr;}
@@ -529,6 +554,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
         <div class="field full"><label>Durée calculée</label><input type="text" id="f-days" readonly placeholder="Calculée automatiquement depuis les dates" style="background:var(--bg4);color:var(--text2);cursor:default;"/></div>
         <div class="field full"><label>Domaine d'application</label><input type="text" id="f-domain" placeholder="Ex : Automotive, BESS, Marine, Industrie, Ferroviaire…"/></div>
+        <div class="field full"><label>Responsable du test</label><input type="text" id="f-owner" placeholder="Ex : Vincent Jacob, Marc Dupont…"/></div>
         <div class="field full" id="f-failclass-row" style="display:none;">
           <label>Classe d'échec</label>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
@@ -611,6 +637,56 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(56,189,248,.5);"></div> En cours</div>
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(34,211,160,.5);"></div> Valid&eacute;</div>
       <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(244,63,94,.5);"></div> &Eacute;chec</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFLITS -->
+<div class="overlay hidden conflict-overlay" id="conflict-overlay">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h2><i class="ti ti-alert-triangle" style="color:var(--warning);font-size:18px;"></i> Conflits de planning</h2>
+      <button class="modal-close" onclick="document.getElementById('conflict-overlay').classList.add('hidden')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="conflict-body"></div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIQUE -->
+<div class="overlay hidden history-overlay" id="history-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2><i class="ti ti-history" style="color:var(--accent);font-size:18px;"></i> Historique des modifications</h2>
+      <button class="modal-close" onclick="document.getElementById('history-overlay').classList.add('hidden')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" id="history-body"></div>
+  </div>
+</div>
+
+<!-- MODAL LIENS -->
+<div class="overlay hidden" id="link-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2><i class="ti ti-link" style="color:var(--accent);font-size:18px;"></i> Lier des tests</h2>
+      <button class="modal-close" onclick="document.getElementById('link-overlay').classList.add('hidden')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:12px;">
+        <label>Type de lien</label>
+        <select id="link-type" class="filter-select" style="width:100%;">
+          <option value="depends">Dépend de</option>
+          <option value="blocks">Bloque</option>
+          <option value="related">Lié à</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Test cible</label>
+        <select id="link-target" class="filter-select" style="width:100%;"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="document.getElementById('link-overlay').classList.add('hidden')">Annuler</button>
+      <button class="btn primary" onclick="saveLink()"><i class="ti ti-check"></i> Ajouter le lien</button>
     </div>
   </div>
 </div>
@@ -1016,6 +1092,115 @@ async function refreshAllAttCounts(){
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
+/* ---- CONFLITS DE PLANNING ---- */
+function detectConflicts(t){
+  if(!t.dateStart||!t.dateEnd||!t.material) return [];
+  const s1=new Date(t.dateStart); const e1=new Date(t.dateEnd);
+  const matA=(t.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
+  return tests.filter(other=>{
+    if(other.id===t.id||!other.dateStart||!other.dateEnd||!other.material) return false;
+    const s2=new Date(other.dateStart); const e2=new Date(other.dateEnd);
+    if(s1>e2||s2>e1) return false; // pas de chevauchement dates
+    const matB=(other.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
+    const common=matA.find(m=>m.length>3&&matB.some(mb=>mb.includes(m)||m.includes(mb)));
+    if(!common) return false;
+    return {name:other.name, equipment:common};
+  }).map(other=>{
+    const matB=(other.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
+    const matA2=(t.material||'').toLowerCase().split(/[,;\n]+/).map(m=>m.trim()).filter(Boolean);
+    const common=matA2.find(m=>m.length>3&&matB.some(mb=>mb.includes(m)||m.includes(mb)))||'';
+    return {name:other.name, equipment:common};
+  });
+}
+
+function openConflicts(){
+  const body=document.getElementById('conflict-body');
+  const allConflicts=[];
+  tests.forEach(t=>{
+    const c=detectConflicts(t);
+    if(c.length) allConflicts.push({test:t, conflicts:c});
+  });
+  if(!allConflicts.length){
+    body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);"><i class="ti ti-check" style="font-size:32px;display:block;margin-bottom:8px;color:var(--success);opacity:.6;"></i>Aucun conflit de planning détecté.</div>';
+  } else {
+    body.innerHTML=allConflicts.map(({test:t,conflicts:c})=>
+      '<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius);padding:14px;margin-bottom:10px;">'
+      +'<div style="font-weight:700;font-size:14px;font-family:var(--title);color:var(--navy);margin-bottom:8px;"><i class="ti ti-flask-2" style="color:var(--accent);margin-right:6px;font-size:13px;"></i>'+esc(t.name)+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);">Chevauchement avec :</div>'
+      +c.map(cf=>'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px;">'
+        +'<i class="ti ti-arrow-right" style="color:var(--warning);font-size:12px;flex-shrink:0;"></i>'
+        +'<span><strong>'+esc(cf.name)+'</strong> — équipement partagé : <code style="background:var(--bg4);padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:11px;">'+esc(cf.equipment)+'</code></span>'
+        +'</div>').join('')
+      +'</div>'
+    ).join('');
+  }
+  document.getElementById('conflict-overlay').classList.remove('hidden');
+}
+
+/* ---- HISTORIQUE ---- */
+function openHistory(id){
+  const t=tests.find(x=>x.id===id); if(!t) return;
+  const body=document.getElementById('history-body');
+  const history=(t.history||[]).slice().reverse();
+  if(!history.length){
+    body.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);">Aucun historique disponible.</div>';
+  } else {
+    body.innerHTML=history.map(h=>{
+      const dt=new Date(h.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      let changesHtml='';
+      if(h.action){
+        changesHtml='<div class="history-changes">'+esc(h.action)+'</div>';
+      } else if(h.changes&&h.changes.length){
+        changesHtml='<div class="history-changes">'+h.changes.map(c=>
+          '<div class="history-change-row"><span style="font-size:12px;color:var(--text2);min-width:90px;">'+esc(c.field)+'</span>'
+          +(c.old?'<span class="history-old">'+esc(c.old)+'</span>':'')
+          +'<i class="ti ti-arrow-right" style="font-size:10px;color:var(--text3);"></i>'
+          +'<span class="history-new">'+esc(c.new)+'</span></div>'
+        ).join('')+'</div>';
+      }
+      return '<div class="history-item">'
+        +'<div class="history-dot"></div>'
+        +'<div style="flex:1;">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--navy);">'+esc(h.user||'Inconnu')+'</div>'
+        +'<div class="history-meta">'+dt+'</div>'
+        +changesHtml
+        +'</div></div>';
+    }).join('');
+  }
+  document.getElementById('history-overlay').classList.remove('hidden');
+}
+
+/* ---- LIENS ENTRE TESTS ---- */
+let _linkTestId = null;
+function openLinkModal(id){
+  _linkTestId=id;
+  const sel=document.getElementById('link-target');
+  sel.innerHTML=tests.filter(t=>t.id!==id).map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');
+  document.getElementById('link-overlay').classList.remove('hidden');
+}
+function saveLink(){
+  const t=tests.find(x=>x.id===_linkTestId); if(!t) return;
+  if(!t.links) t.links=[];
+  const targetId=document.getElementById('link-target').value;
+  const type=document.getElementById('link-type').value;
+  if(!targetId||t.links.find(l=>l.testId===targetId)) return;
+  t.links.push({testId:targetId, type});
+  t.updatedAt=Date.now();
+  document.getElementById('link-overlay').classList.add('hidden');
+  persist(); render();
+  toast('Lien ajouté.','success');
+}
+function removeLink(testId, linkedId){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  t.links=(t.links||[]).filter(l=>l.testId!==linkedId);
+  t.updatedAt=Date.now();
+  persist(); render();
+  setTimeout(()=>{
+    const body=document.getElementById('body-'+testId);
+    if(body) body.classList.add('open');
+  },50);
+}
+
 // Calcule le nombre de jours ouvrés (lundi-vendredi) entre deux dates
 function calcDaysValue(start, end){
   if(!start || !end) return '';
@@ -1138,6 +1323,8 @@ function render(){
         <div class="card-chips">
           ${t.type?`<span class="chip chip-type">${esc(t.type)}</span>`:''}
           ${t.domain?`<span class="chip chip-domain"><i class="ti ti-world" style="font-size:11px;"></i> ${esc(t.domain)}</span>`:''}
+          ${t.owner?`<span class="chip" style="background:rgba(107,110,232,.1);color:var(--accent);"><i class="ti ti-user" style="font-size:11px;"></i> ${esc(t.owner)}</span>`:''}
+          ${detectConflicts(t).length?'<span class="chip chip-conflict"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Conflit</span>':''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
           ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
@@ -1187,9 +1374,15 @@ function renderViewBody(t){
         <div class="info-block"><div class="info-block-label">Date de début</div><div class="info-block-val">${t.dateStart||'—'}</div></div>
         <div class="info-block"><div class="info-block-label">Date de fin</div><div class="info-block-val">${t.dateEnd||'—'}</div></div>
       </div>
+      ${t.owner?`<div class="info-row" style="grid-template-columns:1fr;"><div class="info-block"><div class="info-block-label"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Responsable</div><div class="info-block-val">${esc(t.owner)}</div></div></div>`:''}
+      ${detectConflicts(t).length?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#d97706;"><i class="ti ti-alert-triangle" style="vertical-align:-2px;margin-right:6px;"></i><strong>Conflits détectés :</strong> ${detectConflicts(t).map(c=>'<span style="font-weight:600;">'+esc(c.name)+'</span> ('+esc(c.equipment)+')').join(', ')}</div>`:''} 
       ${(t.domain||t.failClass)?`<div class="info-row" style="grid-template-columns:repeat(${t.domain&&t.failClass?'2,1fr':'1,1fr'});">
         ${t.domain?`<div class="info-block"><div class="info-block-label"><i class="ti ti-world" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Domaine d'application</div><div class="info-block-val">${esc(t.domain)}</div></div>`:''}
         ${t.failClass?`<div class="info-block" style="border-color:${t.failClass==='A'?'rgba(251,191,36,.3)':t.failClass==='B'?'rgba(249,115,22,.3)':'rgba(225,29,72,.3)'};background:${t.failClass==='A'?'rgba(251,191,36,.06)':t.failClass==='B'?'rgba(249,115,22,.06)':'rgba(225,29,72,.06)'};"><div class="info-block-label">Classe d'échec</div><div class="info-block-val" style="color:${t.failClass==='A'?'#d97706':t.failClass==='B'?'#ea580c':'#e11d48'};">Classe ${esc(t.failClass)} — ${t.failClass==='A'?'Mineure':t.failClass==='B'?'Majeure':'Critique'}</div></div>`:''}
+      </div>`:''}
+      ${(t.links&&t.links.length)?`<div class="section">
+        <div class="section-title"><i class="ti ti-link" style="font-size:13px;"></i> Liens entre tests</div>
+        ${t.links.map(l=>{const linked=tests.find(x=>x.id===l.testId);return linked?`<div class="link-item"><span class="link-type-badge ${l.type==='depends'?'link-depends':l.type==='blocks'?'link-blocks':'link-related'}">${l.type==='depends'?'Dépend de':l.type==='blocks'?'Bloque':'Lié à'}</span><span style="flex:1;">${esc(linked.name)}</span><button class="btn xs ghost" onclick="removeLink('${t.id}','${l.testId}')"><i class="ti ti-x"></i></button></div>`:'';}).join('')}
       </div>`:''}
       <div class="section">
         <div class="section-title"><i class="ti ti-certificate" style="font-size:13px;"></i> Appartenance</div>
@@ -1219,6 +1412,8 @@ function renderViewBody(t){
       </div>
     </div>
     <div class="card-actions">
+      <button class="btn sm ghost" onclick="openHistory('${t.id}')"><i class="ti ti-history"></i> Historique</button>
+      <button class="btn sm ghost" onclick="openLinkModal('${t.id}')"><i class="ti ti-link"></i> Lier</button>
       <button class="btn sm ghost" onclick="startEdit('${t.id}')"><i class="ti ti-pencil"></i> Modifier</button>
       <button class="btn sm danger-ghost" onclick="del('${t.id}')"><i class="ti ti-trash"></i> Supprimer</button>
     </div>`;
@@ -1250,6 +1445,7 @@ function renderEditForm(t, delivs){
         <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}" oninput="calcDays('e-date-${t.id}','e-dateend-${t.id}','e-days-${t.id}')"/></div>
         <div class="efield full"><label>Durée calculée</label><input type="text" id="e-days-${t.id}" value="${esc(t.days||'')} " readonly style="background:var(--bg4);color:var(--text2);cursor:default;" placeholder="Calculée automatiquement depuis les dates"/></div>
         <div class="efield full"><label>Domaine d'application</label><input type="text" id="e-domain-${t.id}" value="${esc(t.domain||'')}" placeholder="Ex : Automotive, BESS, Marine, Industrie…"/></div>
+        <div class="efield full"><label>Responsable du test</label><input type="text" id="e-owner-${t.id}" value="${esc(t.owner||'')}" placeholder="Ex : Vincent Jacob…"/></div>
         <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
           <label>Classe d'échec</label>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
@@ -1324,6 +1520,13 @@ function saveEdit(id){
     return;
   }
   const oldName = t.name;
+  // Capturer les anciennes valeurs pour l'historique
+  const snapshot = {
+    name:t.name, type:t.type, status:t.status,
+    dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
+    domain:t.domain, owner:t.owner, failClass:t.failClass,
+    material:t.material, description:t.description
+  };
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
   t.status=document.getElementById('e-status-'+id)?.value||'pending';
@@ -1331,6 +1534,7 @@ function saveEdit(id){
   t.dateEnd=document.getElementById('e-dateend-'+id)?.value||'';
   t.days=calcDaysValue(t.dateStart, t.dateEnd);
   t.domain=(document.getElementById('e-domain-'+id)?.value||'').trim();
+  t.owner=(document.getElementById('e-owner-'+id)?.value||'').trim();
   const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
   t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
   t.material=(document.getElementById('e-material-'+id)?.value||'').trim();
@@ -1338,6 +1542,22 @@ function saveEdit(id){
   t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
   t.certIds=certifications.filter(c=>document.getElementById('e-cert-'+c.id+'-'+id)?.checked).map(c=>c.id);
   t.deliverables=[...(editingCards[id]?.deliverables||[])];
+  // Générer l'entrée d'historique
+  if(!t.history) t.history=[];
+  if(!t.links) t.links=[];
+  const editor = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
+  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
+  const STATUS_LABELS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
+  const changes = [];
+  Object.keys(snapshot).forEach(k=>{
+    const oldV = snapshot[k]||'';
+    const newV = (k==='name'?t.name:k==='type'?t.type:k==='status'?t.status:k==='dateStart'?t.dateStart:k==='dateEnd'?t.dateEnd:k==='days'?t.days:k==='domain'?t.domain:k==='owner'?t.owner:k==='failClass'?t.failClass:k==='material'?t.material:t.description)||'';
+    if(String(oldV)!==String(newV)){
+      const fmt = v => k==='status'?(STATUS_LABELS[v]||v):v;
+      changes.push({field:LABELS[k]||k, old:fmt(oldV), new:fmt(newV)});
+    }
+  });
+  if(changes.length) t.history.push({ts:Date.now(),user:editor,changes});
   t.updatedAt=Date.now();
   delete editingCards[id];
 
@@ -1475,7 +1695,7 @@ function renderModalCerts(){
 
 function openModal(){
   tempD=[];
-  ['f-name','f-type','f-date','f-dateend','f-domain','f-material','f-desc'].forEach(id=>{
+  ['f-name','f-type','f-date','f-dateend','f-domain','f-owner','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   const daysEl=document.getElementById('f-days'); if(daysEl) daysEl.value='';
@@ -1515,19 +1735,24 @@ function saveNew(){
   const certIds=certifications.filter(c=>document.getElementById('f-cert-'+c.id)?.checked).map(c=>c.id);
   const isRnD=document.getElementById('f-rnd')?.checked||false;
   const fStatus = document.getElementById('f-status').value;
+  const newId = uid();
+  const creator = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
   tests.push({
-    id:uid(), attachments:[], name,
+    id:newId, attachments:[], name,
     type:document.getElementById('f-type').value,
     status:fStatus,
     dateStart:document.getElementById('f-date').value,
     dateEnd:document.getElementById('f-dateend').value,
     days:calcDaysValue(document.getElementById('f-date').value, document.getElementById('f-dateend').value),
     domain:(document.getElementById('f-domain').value||'').trim(),
+    owner:(document.getElementById('f-owner').value||'').trim(),
     failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),
     description:document.getElementById('f-desc').value.trim(),
     deliverables:[...tempD],
     certIds, isRnD,
+    links:[],
+    history:[{ts:Date.now(),user:creator,action:'Création du test'}],
     updatedAt: Date.now()
   });
   closeModal();persist();toast('Test créé.','success');
@@ -2226,29 +2451,19 @@ function toast(msg,type='info'){
 }
 
 /* ---- EXPORT EXCEL ---- */
-async function exportExcel(){
-  // Charge les PJ manquantes avant export
-  toast('Préparation de l\'export…','info');
-  for(const t of tests){
-    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
-    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
-  }
-  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Materiel / equipement','Description / protocole','Livrables','R&D','Certifications','Docs de reference','Comptes rendus & livrables']];
+function exportExcel(){
+  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Livrables','R&D','Certifications']];
   tests.forEach(function(t,i){
     var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
-    var refFiles = _refCache[t.id] ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
-    var reportFiles = _attCache[t.id] ? _attCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
     rows.push([
       i+1, t.name, t.type||'', STATUS[t.status]||'',
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
-      t.material||'', t.description||'',
       (t.deliverables||[]).join(' | '),
-      t.isRnD?'Oui':'', certs,
-      refFiles, reportFiles
+      t.isRnD?'Oui':'', certs
     ]);
   });
-  var bom = '\uFEFF';
+    var bom = '﻿';
   var crlf = String.fromCharCode(13,10);
   var lines = rows.map(function(r){
     return r.map(function(c){
@@ -2374,13 +2589,7 @@ function renderCalendar(){
 }
 
 /* ---- PDF EXPORT ---- */
-async function exportPDF(){
-  // Charge les PJ manquantes avant export
-  toast('Préparation de l\'export…','info');
-  for(const t of tests){
-    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
-    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
-  }
+function exportPDF(){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,M=16,CW=W-M*2;let y=20;
   const chk=(n=12)=>{if(y+n>275){doc.addPage();y=18;}};
@@ -2417,23 +2626,7 @@ async function exportPDF(){
     if(t.material){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Matériel :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.material,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
     if(t.description){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Protocole :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);const ls=doc.splitTextToSize(t.description,CW-8);doc.text(ls,M+8,y);y+=ls.length*4.5;}
     if((t.deliverables||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Livrables :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);t.deliverables.forEach(d=>{chk(5);doc.text('• '+d,M+8,y);y+=4.8;});}
-    const refItems = _refCache[t.id]?_refCache[t.id].items:[];
-    const reportItems = _attCache[t.id]?_attCache[t.id].items:(t.attachments||[]);
-    const totalPJ = refItems.length + reportItems.length;
-    if(totalPJ){
-      chk(10);
-      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);
-      doc.text('Pièces jointes ('+totalPJ+') :',M+4,y);y+=5;
-      doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
-      if(refItems.length){
-        chk(5);doc.setFont('helvetica','italic');doc.text('Documents de référence :',M+8,y);y+=4.5;doc.setFont('helvetica','normal');
-        refItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+12,y);y+=4.8;});
-      }
-      if(reportItems.length){
-        chk(5);doc.setFont('helvetica','italic');doc.text('Comptes rendus & livrables :',M+8,y);y+=4.5;doc.setFont('helvetica','normal');
-        reportItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+12,y);y+=4.8;});
-      }
-    }
+    if((t.attachments||[]).length){chk(10);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(60,60,60);doc.text('Pièces jointes ('+t.attachments.length+') :',M+4,y);y+=5;doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);t.attachments.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});}
     y+=6;doc.setDrawColor(235,235,235);doc.line(M,y-2,W-M,y-2);
   });
   if(!tests.length){doc.setFont('helvetica','italic');doc.setFontSize(10);doc.setTextColor(160,160,160);doc.text('Aucun test enregistré.',M,y);}

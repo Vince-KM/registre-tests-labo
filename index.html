@@ -2227,13 +2227,14 @@ function toast(msg,type='info'){
 
 /* ---- EXPORT EXCEL ---- */
 function exportExcel(){
-  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Livrables','R&D','Certifications']];
+  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Materiel / equipement','Description / protocole','Livrables','R&D','Certifications']];
   tests.forEach(function(t,i){
     var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
     rows.push([
       i+1, t.name, t.type||'', STATUS[t.status]||'',
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
+      t.material||'', t.description||'',
       (t.deliverables||[]).join(' | '),
       t.isRnD?'Oui':'', certs
     ]);

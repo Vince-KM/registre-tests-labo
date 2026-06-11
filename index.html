@@ -2227,19 +2227,22 @@ function toast(msg,type='info'){
 
 /* ---- EXPORT EXCEL ---- */
 function exportExcel(){
-  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Materiel / equipement','Description / protocole','Livrables','R&D','Certifications']];
+  const rows = [['N','Nom du test','Type','Statut','Classe echec','Domaine','Date debut','Date fin','Duree (j)','Materiel / equipement','Description / protocole','Livrables','R&D','Certifications','Docs de reference','Comptes rendus & livrables']];
   tests.forEach(function(t,i){
     var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(', ');
+    var refFiles = _refCache[t.id] ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
+    var reportFiles = _attCache[t.id] ? _attCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
     rows.push([
       i+1, t.name, t.type||'', STATUS[t.status]||'',
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
       t.material||'', t.description||'',
       (t.deliverables||[]).join(' | '),
-      t.isRnD?'Oui':'', certs
+      t.isRnD?'Oui':'', certs,
+      refFiles, reportFiles
     ]);
   });
-    var bom = '﻿';
+  var bom = '\uFEFF';
   var crlf = String.fromCharCode(13,10);
   var lines = rows.map(function(r){
     return r.map(function(c){

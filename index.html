@@ -905,14 +905,16 @@ async function refreshAllAttCounts(){
       }
 
       // ── Mise à jour des compteurs de pièces jointes ──
-      const items = await listSpFolder(t.name, t.spFolderId);
-      if(items === null) continue;
-      // items = fichiers Rapports ; on additionne aussi Référence
-      const refCount = _refCache[t.id] ? _refCache[t.id].items.length : 0;
+      // Lit Rapports/ et Reference/ séparément (pas la racine qui contient les sous-dossiers)
+      const reportItems = await listSpFolder(t.name, null, 'reports');
+      const refItems    = await listSpFolder(t.name, null, 'ref');
+      if(reportItems !== null && _attCache[t.id]) _attCache[t.id] = { items: reportItems, ts: Date.now() };
+      else if(reportItems !== null) _attCache[t.id] = { items: reportItems, ts: Date.now() };
+      if(refItems !== null && _refCache[t.id]) _refCache[t.id] = { items: refItems, ts: Date.now() };
+      else if(refItems !== null) _refCache[t.id] = { items: refItems, ts: Date.now() };
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = items.length + refCount + localCount;
+      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + localCount;
       const prev = _attCount[t.id];
-      _attCache[t.id] = { items, ts: Date.now() };
       _attCount[t.id] = total;
       if(prev !== total){
         updateAttChip(t.id, total);

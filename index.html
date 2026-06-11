@@ -478,9 +478,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="field"><label>Statut</label>
           <select id="f-status" onchange="toggleFailClass('f',this.value)"><option value="pending">En attente</option><option value="progress">En cours</option><option value="done">Validé</option><option value="fail">Échec</option></select>
         </div>
-        <div class="field"><label>Date de début prévue</label><input type="date" id="f-date"/></div>
-        <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend"/></div>
-        <div class="field full"><label>Nombre de jours prévus</label><input type="number" id="f-days" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="field"><label>Date de début prévue</label><input type="date" id="f-date" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
+        <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
+        <div class="field full"><label>Durée calculée</label><input type="text" id="f-days" readonly placeholder="Calculée automatiquement depuis les dates" style="background:var(--bg4);color:var(--text2);cursor:default;"/></div>
         <div class="field full"><label>Domaine d'application</label><input type="text" id="f-domain" placeholder="Ex : Automotive, BESS, Marine, Industrie, Ferroviaire…"/></div>
         <div class="field full" id="f-failclass-row" style="display:none;">
           <label>Classe d'échec</label>
@@ -939,6 +939,32 @@ async function refreshAllAttCounts(){
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// Calcule le nombre de jours ouvrés (lundi-vendredi) entre deux dates
+function calcDaysValue(start, end){
+  if(!start || !end) return '';
+  const d1 = new Date(start);
+  const d2 = new Date(end);
+  if(isNaN(d1)||isNaN(d2)||d2<d1) return '';
+  let days = 0;
+  const cur = new Date(d1);
+  while(cur <= d2){
+    const dow = cur.getDay();
+    if(dow !== 0 && dow !== 6) days++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return days > 0 ? String(days) : '';
+}
+
+// Met à jour le champ durée en temps réel quand les dates changent
+function calcDays(startId, endId, daysId){
+  const start = document.getElementById(startId)?.value;
+  const end   = document.getElementById(endId)?.value;
+  const el    = document.getElementById(daysId);
+  if(!el) return;
+  const val = calcDaysValue(start, end);
+  el.value = val ? val + ' jour' + (parseInt(val)>1?'s':'') : '';
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(b){if(!b)return '';if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return (b/1048576).toFixed(1)+'MB';}
 
@@ -1133,9 +1159,9 @@ function renderEditForm(t, delivs){
         <div class="efield full"><label>Nom du test *</label><input type="text" id="e-name-${t.id}" value="${esc(t.name)}" placeholder="Nom du test"/></div>
         <div class="efield"><label>Type de test</label><select id="e-type-${t.id}"><option value="">— Sélectionner —</option>${typeOpts}</select></div>
         <div class="efield"><label>Statut</label><select id="e-status-${t.id}" onchange="toggleFailClass('e-${t.id}',this.value)">${statusOpts}</select></div>
-        <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}"/></div>
-        <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}"/></div>
-        <div class="efield full"><label>Jours prévus</label><input type="number" id="e-days-${t.id}" value="${esc(t.days||'')}" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
+        <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}" oninput="calcDays('e-date-${t.id}','e-dateend-${t.id}','e-days-${t.id}')"/></div>
+        <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}" oninput="calcDays('e-date-${t.id}','e-dateend-${t.id}','e-days-${t.id}')"/></div>
+        <div class="efield full"><label>Durée calculée</label><input type="text" id="e-days-${t.id}" value="${esc(t.days||'')} " readonly style="background:var(--bg4);color:var(--text2);cursor:default;" placeholder="Calculée automatiquement depuis les dates"/></div>
         <div class="efield full"><label>Domaine d'application</label><input type="text" id="e-domain-${t.id}" value="${esc(t.domain||'')}" placeholder="Ex : Automotive, BESS, Marine, Industrie…"/></div>
         <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
           <label>Classe d'échec</label>
@@ -1216,7 +1242,7 @@ function saveEdit(id){
   t.status=document.getElementById('e-status-'+id)?.value||'pending';
   t.dateStart=document.getElementById('e-date-'+id)?.value||'';
   t.dateEnd=document.getElementById('e-dateend-'+id)?.value||'';
-  t.days=document.getElementById('e-days-'+id)?.value||'';
+  t.days=calcDaysValue(t.dateStart, t.dateEnd);
   t.domain=(document.getElementById('e-domain-'+id)?.value||'').trim();
   const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
   t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
@@ -1362,7 +1388,7 @@ function renderModalCerts(){
 
 function openModal(){
   tempD=[];
-  ['f-name','f-type','f-date','f-dateend','f-days','f-domain','f-material','f-desc'].forEach(id=>{
+  ['f-name','f-type','f-date','f-dateend','f-domain','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   if(!window._failClassSel) window._failClassSel={};
@@ -1407,7 +1433,7 @@ function saveNew(){
     status:fStatus,
     dateStart:document.getElementById('f-date').value,
     dateEnd:document.getElementById('f-dateend').value,
-    days:document.getElementById('f-days').value,
+    days:calcDaysValue(document.getElementById('f-date').value, document.getElementById('f-dateend').value),
     domain:(document.getElementById('f-domain').value||'').trim(),
     failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),

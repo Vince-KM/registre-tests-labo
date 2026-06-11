@@ -945,12 +945,14 @@ async function loadFromSharePoint(){
   const token = await getToken();
   if(!token){ loadLocalFallback(); return; }
   try{
-    const [rTests, rCerts] = await Promise.all([
+    const [rTests, rCerts, rEquip] = await Promise.all([
       fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}}),
-      fetch(spUrl(SP_CONFIG.certsFile), {headers:{Authorization:`Bearer ${token}`}})
+      fetch(spUrl(SP_CONFIG.certsFile), {headers:{Authorization:`Bearer ${token}`}}),
+      fetch(spUrl(SP_CONFIG.equipFile), {headers:{Authorization:`Bearer ${token}`}})
     ]);
     if(rTests.ok) tests = await rTests.json(); else tests = [];
     if(rCerts.ok) certifications = await rCerts.json(); else certifications = [];
+    if(rEquip.ok) equipments = await rEquip.json(); else equipments = [];
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Synchronisé');
     setTimeout(()=>setSyncMsg(''), 3000);
     startPolling();

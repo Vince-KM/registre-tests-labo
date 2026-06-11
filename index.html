@@ -317,6 +317,51 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .empty{text-align:center;padding:4rem 2rem;color:var(--text3);}
 .empty p{color:var(--text2);}
 
+/* ── ALERTE RETARD ── */
+.chip-late{background:rgba(244,63,94,.15);color:#f43f5e;border:1px solid rgba(244,63,94,.3);animation:pulse-late 2s infinite;}
+@keyframes pulse-late{0%,100%{opacity:1;}50%{opacity:.6;}}
+.card-late{border-color:rgba(244,63,94,.35) !important;box-shadow:0 0 0 1px rgba(244,63,94,.1) !important;}
+
+/* ── VUE CALENDRIER ── */
+.cal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:500;backdrop-filter:blur(4px);padding:2rem 1rem;overflow-y:auto;}
+.cal-overlay.hidden{display:none;}
+.cal-modal{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius-lg);width:min(1100px,100%);box-shadow:var(--shadow);animation:slideUp .22s ease;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+.cal-header h2{font-family:var(--title);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--navy);}
+.cal-nav{display:flex;align-items:center;gap:10px;}
+.cal-nav-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:6px 12px;cursor:pointer;color:var(--text2);font-family:var(--font);font-size:13px;transition:all .15s;}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cal-period{font-family:var(--title);font-size:15px;font-weight:700;color:var(--navy);min-width:160px;text-align:center;}
+.cal-mode-btns{display:flex;gap:6px;}
+.cal-mode-btn{padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.cal-mode-btn.active{background:var(--accent);border-color:transparent;color:#fff;}
+.cal-body{padding:16px 20px 20px;overflow-x:auto;}
+.cal-grid{display:grid;min-width:600px;}
+.cal-day-headers{display:flex;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.cal-day-hd{flex:1;text-align:center;font-size:11px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:6px 2px;}
+.cal-day-hd.today{color:var(--accent);}
+.cal-week-row{display:flex;gap:3px;margin-bottom:3px;min-height:80px;}
+.cal-day-cell{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:4px 5px;min-height:80px;position:relative;cursor:default;}
+.cal-day-cell.other-month{opacity:.4;}
+.cal-day-cell.today{border-color:var(--accent);background:var(--accent-dim);}
+.cal-day-num{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:3px;font-family:var(--mono);}
+.cal-day-cell.today .cal-day-num{color:var(--accent);}
+.cal-test-block{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s;}
+.cal-test-block:hover{opacity:.8;}
+.cal-test-block.status-pending{background:rgba(245,158,11,.2);color:#d97706;}
+.cal-test-block.status-progress{background:rgba(56,189,248,.2);color:#0284c7;}
+.cal-test-block.status-done{background:rgba(34,211,160,.2);color:#059669;}
+.cal-test-block.status-fail{background:rgba(244,63,94,.2);color:#e11d48;}
+.cal-legend{display:flex;gap:16px;padding:12px 20px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.cal-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+.cal-legend-dot{width:10px;height:10px;border-radius:3px;}
+/* Semaine */
+.cal-week-grid{display:flex;gap:3px;}
+.cal-week-col{flex:1;min-height:400px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 6px;}
+.cal-week-col.today{border-color:var(--accent);background:var(--accent-dim);}
+.cal-week-col-hd{font-size:11px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px;text-align:center;}
+.cal-week-col.today .cal-week-col-hd{color:var(--accent);}
+
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
   .info-row{grid-template-columns:1fr 1fr;}
@@ -400,8 +445,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
       <div class="header-actions">
         <button class="btn-preview-mode" id="btn-global-preview" onclick="toggleGlobalPreview()"><i class="ti ti-eye" style="font-size:15px;"></i> Aperçu</button>
+        <button class="btn" onclick="openCalendar()"><i class="ti ti-calendar-month"></i> Calendrier</button>
         <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
-        <button class="btn" onclick="exportPDF()"><i class="ti ti-download"></i> Export PDF</button>
+        <button class="btn" onclick="exportPDF()"><i class="ti ti-file-type-pdf"></i> PDF</button>
+        <button class="btn" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
         <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
       </div>
     </div>
@@ -456,6 +503,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <option value="">Toutes les certifs</option>
       <option value="rnd">R&amp;D Interne</option>
     </select>
+    <select class="filter-select" id="filter-domain" onchange="render()">
+      <option value="">Tous les domaines</option>
+    </select>
   </div>
   </div>
 
@@ -478,9 +528,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="field"><label>Statut</label>
           <select id="f-status" onchange="toggleFailClass('f',this.value)"><option value="pending">En attente</option><option value="progress">En cours</option><option value="done">Validé</option><option value="fail">Échec</option></select>
         </div>
-        <div class="field"><label>Date de début prévue</label><input type="date" id="f-date" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
-        <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
-        <div class="field full"><label>Durée calculée</label><input type="text" id="f-days" readonly placeholder="Calculée automatiquement depuis les dates" style="background:var(--bg4);color:var(--text2);cursor:default;"/></div>
+        <div class="field"><label>Date de début prévue</label><input type="date" id="f-date"/></div>
+        <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend"/></div>
+        <div class="field full"><label>Nombre de jours prévus</label><input type="number" id="f-days" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
         <div class="field full"><label>Domaine d'application</label><input type="text" id="f-domain" placeholder="Ex : Automotive, BESS, Marine, Industrie, Ferroviaire…"/></div>
         <div class="field full" id="f-failclass-row" style="display:none;">
           <label>Classe d'échec</label>
@@ -535,6 +585,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <input type="text" id="c-desc" class="cert-add-desc" placeholder="Description courte (optionnel — ex : Condensateurs EDLC, vibration/choc)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveNewCert();}"/>
         <button class="btn primary sm" onclick="saveNewCert()"><i class="ti ti-plus"></i> Ajouter</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CALENDRIER -->
+<div class="cal-overlay hidden" id="cal-overlay">
+  <div class="cal-modal">
+    <div class="cal-header">
+      <h2><i class="ti ti-calendar-month" style="color:var(--accent);font-size:18px;"></i> Calendrier des tests</h2>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div class="cal-mode-btns">
+          <button class="cal-mode-btn active" id="cal-btn-month" onclick="setCalMode('month')">Mois</button>
+          <button class="cal-mode-btn" id="cal-btn-week" onclick="setCalMode('week')">Semaine</button>
+        </div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calNav(-1)"><i class="ti ti-chevron-left"></i></button>
+          <span class="cal-period" id="cal-period"></span>
+          <button class="cal-nav-btn" onclick="calNav(1)"><i class="ti ti-chevron-right"></i></button>
+          <button class="cal-nav-btn" onclick="calToday()">Aujourd'hui</button>
+        </div>
+        <button class="modal-close" onclick="closeCalendar()"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    <div class="cal-body" id="cal-body"></div>
+    <div class="cal-legend">
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(245,158,11,.4);"></div> En attente</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(56,189,248,.4);"></div> En cours</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(34,211,160,.4);"></div> Validé</div>
+      <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(244,63,94,.4);"></div> Échec</div>
     </div>
   </div>
 </div>
@@ -905,16 +984,12 @@ async function refreshAllAttCounts(){
       }
 
       // ── Mise à jour des compteurs de pièces jointes ──
-      // Lit Rapports/ et Reference/ séparément (pas la racine qui contient les sous-dossiers)
-      const reportItems = await listSpFolder(t.name, null, 'reports');
-      const refItems    = await listSpFolder(t.name, null, 'ref');
-      if(reportItems !== null && _attCache[t.id]) _attCache[t.id] = { items: reportItems, ts: Date.now() };
-      else if(reportItems !== null) _attCache[t.id] = { items: reportItems, ts: Date.now() };
-      if(refItems !== null && _refCache[t.id]) _refCache[t.id] = { items: refItems, ts: Date.now() };
-      else if(refItems !== null) _refCache[t.id] = { items: refItems, ts: Date.now() };
+      const items = await listSpFolder(t.name, t.spFolderId);
+      if(items === null) continue;
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + localCount;
+      const total = items.length + localCount;
       const prev = _attCount[t.id];
+      _attCache[t.id] = { items, ts: Date.now() };
       _attCount[t.id] = total;
       if(prev !== total){
         updateAttChip(t.id, total);
@@ -939,32 +1014,6 @@ async function refreshAllAttCounts(){
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
-
-// Calcule le nombre de jours ouvrés (lundi-vendredi) entre deux dates
-function calcDaysValue(start, end){
-  if(!start || !end) return '';
-  const d1 = new Date(start);
-  const d2 = new Date(end);
-  if(isNaN(d1)||isNaN(d2)||d2<d1) return '';
-  let days = 0;
-  const cur = new Date(d1);
-  while(cur <= d2){
-    const dow = cur.getDay();
-    if(dow !== 0 && dow !== 6) days++;
-    cur.setDate(cur.getDate()+1);
-  }
-  return days > 0 ? String(days) : '';
-}
-
-// Met à jour le champ durée en temps réel quand les dates changent
-function calcDays(startId, endId, daysId){
-  const start = document.getElementById(startId)?.value;
-  const end   = document.getElementById(endId)?.value;
-  const el    = document.getElementById(daysId);
-  if(!el) return;
-  const val = calcDaysValue(start, end);
-  el.value = val ? val + ' jour' + (parseInt(val)>1?'s':'') : '';
-}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmt(b){if(!b)return '';if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return (b/1048576).toFixed(1)+'MB';}
 
@@ -987,11 +1036,13 @@ function filtered(){
   const ft=document.getElementById('filter-type')?.value||'';
   const fs=document.getElementById('filter-status')?.value||'';
   const fc=document.getElementById('filter-cert')?.value||'';
+  const fd=(document.getElementById('filter-domain')?.value||'').toLowerCase();
   return tests.filter(t=>{
     if(ft&&t.type!==ft)return false;
     if(fs&&t.status!==fs)return false;
     if(fc==='rnd'&&!t.isRnD)return false;
     if(fc&&fc!=='rnd'&&!(t.certIds||[]).includes(fc))return false;
+    if(fd&&(t.domain||'').toLowerCase()!==fd)return false;
     if(q&&!t.name.toLowerCase().includes(q)&&!(t.description||'').toLowerCase().includes(q)&&!(t.type||'').toLowerCase().includes(q)&&!(t.domain||'').toLowerCase().includes(q))return false;
     return true;
   });
@@ -1005,6 +1056,14 @@ function render(){
     // Utilise le vrai compte SharePoint si disponible, sinon le JSON local
     totalFiles += _attCount[t.id] !== undefined ? _attCount[t.id] : (t.attachments||[]).length;
   });
+  // Mise à jour du filtre domaine
+  const domainSel=document.getElementById('filter-domain');
+  if(domainSel){
+    const cur=domainSel.value;
+    const domains=[...new Set(tests.map(t=>t.domain).filter(Boolean))].sort();
+    domainSel.innerHTML='<option value="">Tous les domaines</option>'+domains.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    domainSel.value=cur;
+  }
   document.getElementById('s-total').textContent=tests.length;
   document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
   document.getElementById('s-deliv').textContent=totalDeliv;
@@ -1042,7 +1101,8 @@ function render(){
     if(dateSub&&t.days) dateSub+=` · ${t.days} j`;
     else if(t.days&&!dateSub) dateSub=`${t.days} jour${parseFloat(t.days)>1?'s':''}`;
 
-    return `<div class="test-card${isOpen?' expanded':''}${isEditing?' editing':''}" id="card-${t.id}">
+    const isLate = t.status!=='done' && t.status!=='fail' && t.dateEnd && new Date(t.dateEnd) < (() => { const d=new Date(); d.setHours(0,0,0,0); return d; })();
+    return `<div class="test-card${isOpen?' expanded':''}${isEditing?' editing':''}${isLate?' card-late':''}" id="card-${t.id}">
       <div class="card-head" onclick="toggle('${t.id}')">
         <span class="card-num">${String(i+1).padStart(2,'0')}</span>
         <div class="card-info">
@@ -1058,6 +1118,14 @@ function render(){
           ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
           ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
           <span class="chip ${STATUS_CLASS[t.status]}">${STATUS[t.status]}</span>
+          ${(()=>{
+            if(t.status==='done'||t.status==='fail') return '';
+            if(!t.dateEnd) return '';
+            const today=new Date(); today.setHours(0,0,0,0);
+            const end=new Date(t.dateEnd);
+            if(end<today) return '<span class="chip chip-late"><i class="ti ti-alarm" style="font-size:11px;"></i> En retard</span>';
+            return '';
+          })()}
           ${isEditing?`<span class="chip" style="background:rgba(34,211,160,.15);color:var(--success);"><i class="ti ti-pencil" style="font-size:11px;"></i> Édition</span>`:''}
         </div>
         <i class="ti ti-chevron-down chevron"></i>
@@ -1159,9 +1227,9 @@ function renderEditForm(t, delivs){
         <div class="efield full"><label>Nom du test *</label><input type="text" id="e-name-${t.id}" value="${esc(t.name)}" placeholder="Nom du test"/></div>
         <div class="efield"><label>Type de test</label><select id="e-type-${t.id}"><option value="">— Sélectionner —</option>${typeOpts}</select></div>
         <div class="efield"><label>Statut</label><select id="e-status-${t.id}" onchange="toggleFailClass('e-${t.id}',this.value)">${statusOpts}</select></div>
-        <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}" oninput="calcDays('e-date-${t.id}','e-dateend-${t.id}','e-days-${t.id}')"/></div>
-        <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}" oninput="calcDays('e-date-${t.id}','e-dateend-${t.id}','e-days-${t.id}')"/></div>
-        <div class="efield full"><label>Durée calculée</label><input type="text" id="e-days-${t.id}" value="${esc(t.days||'')} " readonly style="background:var(--bg4);color:var(--text2);cursor:default;" placeholder="Calculée automatiquement depuis les dates"/></div>
+        <div class="efield"><label>Date de début prévue</label><input type="date" id="e-date-${t.id}" value="${esc(t.dateStart||'')}"/></div>
+        <div class="efield"><label>Date de fin prévue</label><input type="date" id="e-dateend-${t.id}" value="${esc(t.dateEnd||'')}"/></div>
+        <div class="efield full"><label>Jours prévus</label><input type="number" id="e-days-${t.id}" value="${esc(t.days||'')}" min="0.5" step="0.5" placeholder="Ex : 3"/></div>
         <div class="efield full"><label>Domaine d'application</label><input type="text" id="e-domain-${t.id}" value="${esc(t.domain||'')}" placeholder="Ex : Automotive, BESS, Marine, Industrie…"/></div>
         <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
           <label>Classe d'échec</label>
@@ -1242,7 +1310,7 @@ function saveEdit(id){
   t.status=document.getElementById('e-status-'+id)?.value||'pending';
   t.dateStart=document.getElementById('e-date-'+id)?.value||'';
   t.dateEnd=document.getElementById('e-dateend-'+id)?.value||'';
-  t.days=calcDaysValue(t.dateStart, t.dateEnd);
+  t.days=document.getElementById('e-days-'+id)?.value||'';
   t.domain=(document.getElementById('e-domain-'+id)?.value||'').trim();
   const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
   t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
@@ -1388,10 +1456,9 @@ function renderModalCerts(){
 
 function openModal(){
   tempD=[];
-  ['f-name','f-type','f-date','f-dateend','f-domain','f-material','f-desc'].forEach(id=>{
+  ['f-name','f-type','f-date','f-dateend','f-days','f-domain','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
-  const daysEl=document.getElementById('f-days'); if(daysEl) daysEl.value='';
   if(!window._failClassSel) window._failClassSel={};
   window._failClassSel['f']='';
   document.querySelectorAll('#f-fc-a,#f-fc-b,#f-fc-c').forEach(b=>b.className='fail-class-btn');
@@ -1434,7 +1501,7 @@ function saveNew(){
     status:fStatus,
     dateStart:document.getElementById('f-date').value,
     dateEnd:document.getElementById('f-dateend').value,
-    days:calcDaysValue(document.getElementById('f-date').value, document.getElementById('f-dateend').value),
+    days:document.getElementById('f-days').value,
     domain:(document.getElementById('f-domain').value||'').trim(),
     failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),
@@ -1646,13 +1713,11 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
       });
     }
     // Met aussi à jour le cache si présent
-    if(section==='ref' && _refCache[testId]){
+    if(section==='ref' && _refCache[testId])
       _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
-      if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
-    }
     if(section==='reports' && _attCache[testId]){
       _attCache[testId].items = _attCache[testId].items.filter(i=>i.id!==itemId);
-      if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
+      if(t){ const lc=(t.attachments||[]).filter(a=>a.data).length; _attCount[testId]=_attCache[testId].items.length+lc; updateAttChip(testId,_attCount[testId]); }
     }
     await persist();
   }catch(e){ toast('Erreur lors de la suppression.','danger'); }
@@ -1765,13 +1830,6 @@ async function refreshRefList(testId, forceRefresh){
   }
 }
 
-// Calcule le vrai total de pièces jointes (Rapports + Référence)
-function calcAttCount(testId, t){
-  const reports = _attCache[testId] ? _attCache[testId].items.length : 0;
-  const refs    = _refCache[testId] ? _refCache[testId].items.length : 0;
-  const local   = (t.attachments||[]).filter(a=>a.data).length;
-  return reports + refs + local;
-}
 // Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire
 async function refreshAttList(testId, forceRefresh){
   const t=tests.find(x=>x.id===testId); if(!t) return;
@@ -1850,7 +1908,8 @@ async function refreshAttList(testId, forceRefresh){
   // Met à jour le cache
   _attCache[testId]={ items, ts:Date.now() };
   // Met à jour le compteur réel et le chip dans le header de la carte
-  _attCount[testId] = calcAttCount(testId, t);
+  const localCount = (t.attachments||[]).filter(a=>a.data).length;
+  _attCount[testId] = items.length + localCount;
   updateAttChip(testId, _attCount[testId]);
 
   // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)
@@ -2138,6 +2197,32 @@ function toast(msg,type='info'){
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},2400);
 }
 
+/* ---- EXPORT EXCEL ---- */
+function exportExcel(){
+  const rows = [['N°','Nom du test','Type','Statut','Classe échec','Domaine','Date début','Date fin','Durée (j)','Livrables','R&D','Certifications']];
+  tests.forEach((t,i)=>{
+    const certs = certifications.filter(c=>(t.certIds||[]).includes(c.id)).map(c=>c.name).join(', ');
+    rows.push([
+      i+1, t.name, t.type||'', STATUS[t.status]||'',
+      t.status==='fail'&&t.failClass?'Classe '+t.failClass:'',
+      t.domain||'', t.dateStart||'', t.dateEnd||'', t.days||'',
+      (t.deliverables||[]).join(' | '),
+      t.isRnD?'Oui':'', certs
+    ]);
+  });
+  // Construire CSV (compatible Excel via BOM UTF-8)
+  const bom = '\uFEFF';
+  const NL = '\n';
+  const csv = bom + rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join(NL);
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='registre-tests-labo.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast('Export Excel téléchargé.','success');
+}
+
 /* ---- PDF EXPORT ---- */
 function exportPDF(){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
@@ -2184,10 +2269,120 @@ function exportPDF(){
   toast('PDF exporté avec succès.','success');
 }
 
+/* ---- CALENDRIER ---- */
+let _calDate = new Date();
+let _calMode = 'month'; // 'month' | 'week'
+const CAL_DAYS_FR = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const CAL_MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function openCalendar(){ document.getElementById('cal-overlay').classList.remove('hidden'); renderCalendar(); }
+function closeCalendar(){ document.getElementById('cal-overlay').classList.add('hidden'); }
+function setCalMode(m){ _calMode=m; document.getElementById('cal-btn-month').classList.toggle('active',m==='month'); document.getElementById('cal-btn-week').classList.toggle('active',m==='week'); renderCalendar(); }
+function calNav(dir){ if(_calMode==='month'){ _calDate.setMonth(_calDate.getMonth()+dir); } else { _calDate.setDate(_calDate.getDate()+dir*7); } renderCalendar(); }
+function calToday(){ _calDate=new Date(); renderCalendar(); }
+
+function testsInRange(start, end){
+  return tests.filter(t=>{
+    if(!t.dateStart && !t.dateEnd) return false;
+    const ts = t.dateStart ? new Date(t.dateStart) : null;
+    const te = t.dateEnd   ? new Date(t.dateEnd)   : ts;
+    if(!ts && !te) return false;
+    const s = ts||te; const e = te||ts;
+    return s <= end && e >= start;
+  });
+}
+
+function renderCalendar(){
+  const body = document.getElementById('cal-body');
+  const periodEl = document.getElementById('cal-period');
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  if(_calMode==='month'){
+    const year=_calDate.getFullYear(), month=_calDate.getMonth();
+    periodEl.textContent = CAL_MONTHS_FR[month]+' '+year;
+
+    // Grille mensuelle : lundi en premier
+    const firstDay = new Date(year,month,1);
+    const lastDay  = new Date(year,month+1,0);
+    let startGrid  = new Date(firstDay);
+    const dow = (firstDay.getDay()+6)%7; // 0=lundi
+    startGrid.setDate(startGrid.getDate()-dow);
+
+    let html = '<div class="cal-day-headers">';
+    CAL_DAYS_FR.forEach(d=>html+=`<div class="cal-day-hd">${d}</div>`);
+    html += '</div>';
+
+    let cur = new Date(startGrid);
+    while(cur <= lastDay || (cur.getDay()+6)%7 !== 0){
+      html += '<div class="cal-week-row">';
+      for(let i=0;i<7;i++){
+        const isToday = cur.getTime()===today.getTime();
+        const isOther = cur.getMonth()!==month;
+        const dayTests = tests.filter(t=>{
+          if(!t.dateStart&&!t.dateEnd) return false;
+          const ts=t.dateStart?new Date(t.dateStart):null;
+          const te=t.dateEnd?new Date(t.dateEnd):ts;
+          if(!ts) return false;
+          const s=new Date(ts); s.setHours(0,0,0,0);
+          const e=new Date(te||ts); e.setHours(0,0,0,0);
+          const c=new Date(cur); c.setHours(0,0,0,0);
+          return c>=s && c<=e;
+        });
+        html += `<div class="cal-day-cell${isOther?' other-month':''}${isToday?' today':''}">`;
+        html += `<div class="cal-day-num">${cur.getDate()}</div>`;
+        dayTests.slice(0,3).forEach(t=>{
+          const name = t.name.length>18 ? t.name.slice(0,17)+'…' : t.name;
+          html += `<div class="cal-test-block status-${t.status}" onclick="event.stopPropagation();closeCalendar();setTimeout(()=>{const el=document.getElementById('card-${t.id}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});toggle('${t.id}');}},200)" title="${t.name}">${name}</div>`;
+        });
+        if(dayTests.length>3) html+=`<div style="font-size:9px;color:var(--text3);padding:1px 4px;">+${dayTests.length-3} autre${dayTests.length-3>1?'s':''}</div>`;
+        html += '</div>';
+        cur.setDate(cur.getDate()+1);
+        if(cur>lastDay && (cur.getDay()+6)%7===0) { html+='</div>'; break; }
+      }
+      if(!html.endsWith('</div>')) html+='</div>';
+    }
+    body.innerHTML = html;
+
+  } else {
+    // Vue semaine
+    const dow = (_calDate.getDay()+6)%7;
+    const monday = new Date(_calDate); monday.setDate(_calDate.getDate()-dow); monday.setHours(0,0,0,0);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    periodEl.textContent = `${monday.getDate()} ${CAL_MONTHS_FR[monday.getMonth()].slice(0,3)} — ${sunday.getDate()} ${CAL_MONTHS_FR[sunday.getMonth()].slice(0,3)} ${sunday.getFullYear()}`;
+
+    let html = '<div class="cal-week-grid">';
+    for(let i=0;i<7;i++){
+      const day = new Date(monday); day.setDate(monday.getDate()+i);
+      const isToday = day.getTime()===today.getTime();
+      const dayTests = tests.filter(t=>{
+        if(!t.dateStart&&!t.dateEnd) return false;
+        const ts=t.dateStart?new Date(t.dateStart):null;
+        const te=t.dateEnd?new Date(t.dateEnd):ts;
+        if(!ts) return false;
+        const s=new Date(ts); s.setHours(0,0,0,0);
+        const e=new Date(te||ts); e.setHours(0,0,0,0);
+        const c=new Date(day);
+        return c>=s && c<=e;
+      });
+      html += `<div class="cal-week-col${isToday?' today':''}">`;
+      html += `<div class="cal-week-col-hd">${CAL_DAYS_FR[i]} ${day.getDate()}</div>`;
+      dayTests.forEach(t=>{
+        const name = t.name.length>22 ? t.name.slice(0,21)+'…' : t.name;
+        html += `<div class="cal-test-block status-${t.status}" style="margin-bottom:4px;padding:4px 6px;font-size:11px;white-space:normal;line-height:1.3;" onclick="event.stopPropagation();closeCalendar();setTimeout(()=>{const el=document.getElementById('card-${t.id}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});toggle('${t.id}');}},200)" title="${t.name}">${name}</div>`;
+      });
+      if(!dayTests.length) html+=`<div style="font-size:11px;color:var(--text3);text-align:center;padding-top:20px;">—</div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+    body.innerHTML = html;
+  }
+}
+
 /* ---- EVENTS ---- */
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeCalendar();}});
+document.getElementById('cal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cal-overlay'))closeCalendar();});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser
 function waitForMsal(attempts){

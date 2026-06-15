@@ -204,6 +204,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .att-section-ref .upload-zone{border-color:rgba(167,139,250,.35);}
 .att-section-ref .upload-zone:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-dim);}
 .att-divider{height:1px;background:var(--border);margin:16px 0;}
+.att-section-schema .att-section-title{color:var(--success);}
+.att-section-schema .upload-zone{border-color:rgba(34,211,160,.35);}
+.att-section-schema .upload-zone:hover{border-color:var(--success);color:var(--success);background:var(--success-dim);}
 
 /* CARD FOOTER */
 .card-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:var(--bg3);}
@@ -1291,14 +1294,14 @@ async function refreshAllAttCounts(){
 
       // ── Mise à jour des compteurs de pièces jointes ──
       // Lit Rapports/ et Reference/ séparément (pas la racine qui contient les sous-dossiers)
-      const reportItems = await listSpFolder(t.name, null, 'reports');
-      const refItems    = await listSpFolder(t.name, null, 'ref');
-      if(reportItems !== null && _attCache[t.id]) _attCache[t.id] = { items: reportItems, ts: Date.now() };
-      else if(reportItems !== null) _attCache[t.id] = { items: reportItems, ts: Date.now() };
-      if(refItems !== null && _refCache[t.id]) _refCache[t.id] = { items: refItems, ts: Date.now() };
-      else if(refItems !== null) _refCache[t.id] = { items: refItems, ts: Date.now() };
+      const reportItems  = await listSpFolder(t.name, null, 'reports');
+      const refItems     = await listSpFolder(t.name, null, 'ref');
+      const schemaItems  = await listSpFolder(t.name, null, 'schemas');
+      if(reportItems !== null) _attCache[t.id]    = { items: reportItems, ts: Date.now() };
+      if(refItems !== null)    _refCache[t.id]    = { items: refItems,    ts: Date.now() };
+      if(schemaItems !== null) _schemaCache[t.id] = { items: schemaItems, ts: Date.now() };
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + localCount;
+      const total = (reportItems?reportItems.length:0) + (refItems?refItems.length:0) + (schemaItems?schemaItems.length:0) + localCount;
       const prev = _attCount[t.id];
       _attCount[t.id] = total;
       if(prev !== total){
@@ -1986,6 +1989,7 @@ function render(){
     if((openIds.has(t.id)||editingCards[t.id]) && !editingCards[t.id]){
       refreshAttList(t.id);
       refreshRefList(t.id);
+      refreshSchemaList(t.id);
     }
   });
 }
@@ -2178,6 +2182,7 @@ function cancelEdit(id){
   if(body){body.classList.add('open');card.classList.add('expanded');}
   refreshAttList(id);
   refreshRefList(id);
+  refreshSchemaList(id);
 }
 
 function saveEdit(id){
@@ -2284,7 +2289,7 @@ function saveEdit(id){
         // Si pas de dossier (aucun fichier jamais uploadé) → rien à renommer, c'est normal
       }
       await persist();
-      setTimeout(()=>{ refreshAttList(id); refreshRefList(id); },50);
+      setTimeout(()=>{ refreshAttList(id); refreshRefList(id); refreshSchemaList(id); },50);
     })();
   } else {
     persist();
@@ -2295,7 +2300,7 @@ function saveEdit(id){
     const body=document.getElementById('body-'+id);
     const card=document.getElementById('card-'+id);
     if(body){body.classList.add('open');card.classList.add('expanded');}
-    if(oldName === name){ refreshAttList(id); refreshRefList(id); }
+    if(oldName === name){ refreshAttList(id); refreshRefList(id); refreshSchemaList(id); }
   },50);
 }
 
@@ -2347,6 +2352,7 @@ function toggle(id){
     if(prev) prev.classList.remove('open');
     refreshAttList(id);
     refreshRefList(id);
+    refreshSchemaList(id);
   } else {
     // Réaffiche le panneau d'aperçu si le mode est actif
     const prev=document.getElementById('preview-'+id);
@@ -2534,6 +2540,7 @@ function attFolderPath(testName, section){
   const base = `${SP_CONFIG.folderPath}/Attachments/${slugifyTestName(testName)}`;
   if(section==='ref')     return `${base}/Reference`;
   if(section==='reports') return `${base}/Rapports`;
+  if(section==='schemas') return `${base}/Schemas`;
   return base;
 }
 function attFilePath(testName, fileName){ return `${attFolderPath(testName,'reports')}/${fileName}`; }
@@ -2686,8 +2693,9 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
 }
 
 // Cache mémoire des listings de dossiers : { testId: { items, ts } }
-const _attCache = {};
-const _refCache  = {};
+const _attCache   = {};
+const _refCache   = {};
+const _schemaCache = {};
 const _attCount = {}; // { testId: number } — vrai compte depuis SharePoint
 const ATT_CACHE_TTL = 30000;
 
@@ -2707,6 +2715,74 @@ function renderSpItems(items, testId, section='reports'){
       <button class="att-del" onclick="deleteByItemId('${item.id}','${testId}','${nameSafe}','${section}')" title="Supprimer"><i class="ti ti-x"></i></button>
     </div>`;
   }).join('');
+}
+
+// ── Schémas électriques — copie exacte de refreshRefList ──
+async function refreshSchemaList(testId, forceRefresh){
+  const t=tests.find(x=>x.id===testId); if(!t) return;
+  const el=document.getElementById('schemalist-'+testId); if(!el) return;
+
+  if(!currentAccount){
+    el.innerHTML=renderLocalAtts(t);
+    return;
+  }
+
+  const cached=_schemaCache[testId];
+  const now=Date.now();
+  const stale=!cached || (now - cached.ts > ATT_CACHE_TTL);
+
+  if(cached && !forceRefresh){
+    el.innerHTML=renderSpItems(cached.items, testId, 'schemas');
+    if(stale){
+      const hint=document.createElement('div');
+      hint.id='schema-hint-'+testId;
+      hint.style.cssText='font-size:11px;color:var(--text3);padding:4px 4px 0;display:flex;align-items:center;gap:5px;';
+      hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
+      el.appendChild(hint);
+    } else {
+      return;
+    }
+  } else {
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
+  }
+
+  const tokenR=await getToken();
+  let items;
+  if(t.spSchemasFolderId){
+    try{
+      const res=await fetch(`${spItemUrl(t.spSchemasFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${tokenR}`}});
+      if(res.status===404){
+        t.spSchemasFolderId = null;
+        const res2=await fetch(spFolderChildren(attFolderPath(t.name,'schemas')),{headers:{Authorization:`Bearer ${tokenR}`}});
+        if(res2.status===404) items=[];
+        else if(!res2.ok) items=null;
+        else {
+          items=(await res2.json()).value?.filter(i=>i.file)||[];
+          try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}}); if(r.ok){ const m=await r.json(); t.spSchemasFolderId=m.id; } }catch(e){}
+        }
+      }
+      else if(!res.ok) items=null;
+      else items=(await res.json()).value?.filter(i=>i.file)||[];
+    }catch(e){ items=null; }
+  } else {
+    items = await listSpFolder(t.name, null, 'schemas');
+    if(items !== null && tokenR){
+      try{
+        const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}});
+        if(r.ok){ const m=await r.json(); t.spSchemasFolderId=m.id; }
+      }catch(e){}
+    }
+  }
+
+  if(items===null){
+    if(!cached){ el.innerHTML=`<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire le dossier Schemas.</div>`; }
+    else { document.getElementById('schema-hint-'+testId)?.remove(); }
+    return;
+  }
+
+  _schemaCache[testId]={ items, ts:Date.now() };
+  const elNow=document.getElementById('schemalist-'+testId);
+  if(elNow){ elNow.innerHTML=renderSpItems(items, testId, 'schemas'); }
 }
 
 // ── Documents de référence — copie exacte de refreshAttList ──
@@ -2794,10 +2870,11 @@ async function refreshRefList(testId, forceRefresh){
 
 // Calcule le vrai total de pièces jointes (Rapports + Référence)
 function calcAttCount(testId, t){
-  const reports = _attCache[testId] ? _attCache[testId].items.length : 0;
-  const refs    = _refCache[testId] ? _refCache[testId].items.length : 0;
-  const local   = (t.attachments||[]).filter(a=>a.data).length;
-  return reports + refs + local;
+  const reports  = _attCache[testId]    ? _attCache[testId].items.length    : 0;
+  const refs     = _refCache[testId]    ? _refCache[testId].items.length    : 0;
+  const schemas  = _schemaCache[testId] ? _schemaCache[testId].items.length : 0;
+  const local    = (t.attachments||[]).filter(a=>a.data).length;
+  return reports + refs + schemas + local;
 }
 // Affiche la liste depuis le cache, puis revalide en arrière-plan si nécessaire
 async function refreshAttList(testId, forceRefresh){
@@ -3016,6 +3093,8 @@ async function handleUpload(e, testId, section='reports'){
     t.spRefFolderId = await ensureSubFolder(basePath, 'Reference', token);
   if(section==='reports' && !t.spReportsFolderId)
     t.spReportsFolderId = await ensureSubFolder(basePath, 'Rapports', token);
+  if(section==='schemas' && !t.spSchemasFolderId)
+    t.spSchemasFolderId = await ensureSubFolder(basePath, 'Schemas', token);
 
   const folderPath = attFolderPath(t.name, section);
   setSyncMsg('<span class="sync-spinner"></span>Upload en cours…');
@@ -3172,6 +3251,7 @@ async function exportExcel(){
   for(const t of tests){
     if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
     if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+    if(!_schemaCache[t.id]){ const items=await listSpFolder(t.name,null,'schemas'); if(items) _schemaCache[t.id]={items,ts:Date.now()}; }
   }
 
   const rows = [[
@@ -3179,7 +3259,7 @@ async function exportExcel(){
     'Domaine','Sample','Date début','Date fin','Durée (j)',
     'Matériel / équipement','Description / protocole',
     'Livrables','R&D','Certifications',
-    'Docs de référence','Comptes rendus & livrables','Cartes électroniques',
+    'Docs de référence','Schémas électriques','Comptes rendus & livrables','Cartes électroniques',
     'Liens entre tests'
   ]];
 
@@ -3440,6 +3520,13 @@ async function exportPDF(){
       });
     }
 
+    // Schémas électriques
+    const schemaItems=_schemaCache[t.id]?_schemaCache[t.id].items:[];
+    if(schemaItems.length){
+      chk(10);bold('Schémas électriques ('+schemaItems.length+') :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+      schemaItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
+    }
     // Pièces jointes — Référence
     const refItems=_refCache[t.id]?_refCache[t.id].items:[];
     if(refItems.length){

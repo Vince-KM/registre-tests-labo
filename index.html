@@ -2202,7 +2202,8 @@ function saveEdit(id){
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
     domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
     material:t.material, description:t.description,
-    team:(t.team||[]).join(', ')
+    team:(t.team||[]).join(', '),
+    cards:(t.cardIds||[]).map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', ')
   };
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
@@ -2226,14 +2227,15 @@ function saveEdit(id){
   if(!t.history) t.history=[];
   if(!t.links) t.links=[];
   const editor = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
-  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',team:'Équipe',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
+  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',team:'Équipe',cards:'Cartes électroniques',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
   const STATUS_LABELS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
   const newValues = {
     name:t.name, type:t.type, status:t.status,
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
     domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
     material:t.material, description:t.description,
-    team:t.team.join(', ')
+    team:t.team.join(', '),
+    cards:t.cardIds.map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', ')
   };
   const changes = [];
   Object.keys(snapshot).forEach(k=>{

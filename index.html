@@ -1308,6 +1308,7 @@ async function refreshAllAttCounts(){
         updateAttChip(t.id, total);
         if(document.getElementById('attlist-'+t.id)) refreshAttList(t.id, true);
         if(document.getElementById('reflist-'+t.id)) refreshRefList(t.id, true);
+        if(document.getElementById('schemalist-'+t.id)) refreshSchemaList(t.id, true);
       }
     }catch(e){}
   }
@@ -3102,6 +3103,7 @@ async function handleUpload(e, testId, section='reports'){
     toast(done+' fichier'+(done>1?'s':'')+' uploadé sur SharePoint.','success');
     // Revalide le cache depuis SharePoint (affichage mis à jour avec les vrais IDs)
     if(section==='ref'){ delete _refCache[testId]; refreshRefList(testId, true); }
+    else if(section==='schemas'){ delete _schemaCache[testId]; refreshSchemaList(testId, true); }
     else { delete _attCache[testId]; refreshAttList(testId, true); }
   } else { setSyncMsg(''); }
 }

@@ -2051,7 +2051,8 @@ function saveEdit(id){
     name:t.name, type:t.type, status:t.status,
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
     domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
-    material:t.material, description:t.description
+    material:t.material, description:t.description,
+    team:(t.team||[]).join(', ')
   };
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
@@ -2074,14 +2075,21 @@ function saveEdit(id){
   if(!t.history) t.history=[];
   if(!t.links) t.links=[];
   const editor = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
-  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
+  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',team:'Équipe',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
   const STATUS_LABELS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
+  const newValues = {
+    name:t.name, type:t.type, status:t.status,
+    dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
+    domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
+    material:t.material, description:t.description,
+    team:t.team.join(', ')
+  };
   const changes = [];
   Object.keys(snapshot).forEach(k=>{
-    const oldV = snapshot[k]||'';
-    const newV = (k==='name'?t.name:k==='type'?t.type:k==='status'?t.status:k==='dateStart'?t.dateStart:k==='dateEnd'?t.dateEnd:k==='days'?t.days:k==='domain'?t.domain:k==='owner'?t.owner:k==='failClass'?t.failClass:k==='material'?t.material:t.description)||'';
-    if(String(oldV)!==String(newV)){
-      const fmt = v => k==='status'?(STATUS_LABELS[v]||v):v;
+    const oldV = String(snapshot[k]||'');
+    const newV = String(newValues[k]||'');
+    if(oldV!==newV){
+      const fmt = v => k==='status'?(STATUS_LABELS[v]||v):k==='sample'&&v?'Sample '+v:v;
       changes.push({field:LABELS[k]||k, old:fmt(oldV), new:fmt(newV)});
     }
   });

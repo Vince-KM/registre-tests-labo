@@ -26645,11 +26645,11 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
       ...(opts.width ? { width: { size: opts.width, type: WidthType.DXA } } : {}),
       ...(opts.shade ? { shading: { fill: opts.shade, type: ShadingType.CLEAR } } : {}),
       margins: { top: 80, bottom: 80, left: 120, right: 120 },
-      children: [new Paragraph({ children: [new TextRun({ text: String(text||''), bold: !!opts.bold, size: opts.size||22 })] })]
+      children: [new Paragraph({ children: [new TextRun({ text: String(text||''), bold: !!opts.bold, size: opts.size||22, color: opts.color||undefined })] })]
     });
   }
   function headerRow(cols, widths) {
-    return new TableRow({ children: cols.map((c,i) => cell(c, { width: widths[i], shade: "D0E4F7", bold: true })) });
+    return new TableRow({ children: cols.map((c,i) => cell(c, { width: widths[i], shade: "E8E6FC", bold: true })) });
   }
 
   const allPeople = [t.owner, ...(t.team||[])].filter(Boolean);
@@ -26671,17 +26671,17 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
       ]
     },
     styles: {
-      default: { document: { run: { font: "Arial", size: 22 } } },
+      default: { document: { run: { font: "Calibri", size: 22 } } },
       paragraphStyles: [
         { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
-          run: { size: 32, bold: true, font: "Arial", color: "1F3864" },
-          paragraph: { spacing: { before: 280, after: 120 }, outlineLevel: 0,
-            border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "2E75B6", space: 4 } } } },
+          run: { size: 32, bold: true, font: "Calibri", color: "0F0F1A" },
+          paragraph: { spacing: { before: 300, after: 120 }, outlineLevel: 0,
+            border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "6B6EE8", space: 4 } } } },
         { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
-          run: { size: 26, bold: true, font: "Arial", color: "2E75B6" },
-          paragraph: { spacing: { before: 200, after: 80 }, outlineLevel: 1 } },
+          run: { size: 26, bold: true, font: "Calibri", color: "6B6EE8" },
+          paragraph: { spacing: { before: 220, after: 80 }, outlineLevel: 1 } },
         { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
-          run: { size: 24, bold: true, font: "Arial", color: "404040" },
+          run: { size: 24, bold: true, font: "Calibri", color: "4A4D9E" },
           paragraph: { spacing: { before: 140, after: 60 }, outlineLevel: 2 } },
       ]
     },
@@ -26700,21 +26700,21 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
               columnWidths: [CW - 2268, 2268],
               rows: [new TableRow({ children: [
                 new TableCell({ borders: noBorders, margins: { top: 0, bottom: 0, left: 0, right: 120 },
-                  children: [new Paragraph({ children: [new TextRun({ text: "K-MOTORS Tech — Laboratoire", bold: true, size: 18, color: "1F3864" })] })] }),
+                  children: [new Paragraph({ children: [new TextRun({ text: "K-Motors — Laboratoire", bold: true, size: 18, color: "0F0F1A" })] })] }),
                 new TableCell({ borders: noBorders, margins: { top: 0, bottom: 0, left: 120, right: 0 },
                   children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: t.name.slice(0,50), size: 18, color: "888888" })] })] }),
               ]})]
             }),
-            new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "2E75B6", space: 2 } }, children: [] })
+            new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "6B6EE8", space: 2 } }, children: [] })
           ]
         })
       },
       footers: {
         default: new Footer({
           children: [
-            new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 2, color: "CCCCCC", space: 2 } }, children: [] }),
+            new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 4, color: "6B6EE8", space: 2 } }, children: [] }),
             new Paragraph({
-              children: [new TextRun({ text: "K-MOTORS Tech — Confidentiel", size: 18, color: "888888" })],
+              children: [new TextRun({ text: "K-Motors — Confidentiel | Rapport de test", size: 18, color: "888888" })],
               alignment: AlignmentType.CENTER
             })
           ]
@@ -26724,35 +26724,37 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
         // ── PAGE DE GARDE ──
         pEmpty(), pEmpty(), pEmpty(),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [
-          new TextRun({ text: "K-MOTORS Tech", bold: true, size: 52, color: "1F3864", font: "Arial" })
+          new TextRun({ text: "K-Motors", bold: true, size: 52, color: "0F0F1A", font: "Arial" })
         ]}),
         pEmpty(),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [
-          new TextRun({ text: t.name, bold: true, size: 40, color: "2E75B6", font: "Arial" })
+          new TextRun({ text: t.name, bold: true, size: 40, color: "6B6EE8", font: "Arial" })
         ]}),
         pEmpty(),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [
-          new TextRun({ text: "Rapport de test — Template", size: 28, color: "666666" })
+          new TextRun({ text: "Rapport de test — Template", size: 28, color: "6B6EE8" })
         ]}),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [
           new TextRun({ text: "Confidentiel", size: 22, color: "888888", italics: true })
         ]}),
+        pEmpty(),
+        new Paragraph({ alignment: AlignmentType.CENTER, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "6B6EE8", space: 4 } }, children: [] }),
         pEmpty(), pEmpty(),
         new Table({
           width: { size: halfCW, type: WidthType.DXA }, columnWidths: [col1, col2],
           rows: [
-            ...(t.type?[new TableRow({children:[cell("Type",{width:col1,shade:"EEF4FB",bold:true}),cell(t.type,{width:col2})]})]: []),
-            new TableRow({children:[cell("Statut",{width:col1,shade:"EEF4FB",bold:true}),cell(STATUS[t.status]||'',{width:col2})]}),
-            ...(t.domain?[new TableRow({children:[cell("Domaine",{width:col1,shade:"EEF4FB",bold:true}),cell(t.domain,{width:col2})]})]: []),
-            ...(t.sample?[new TableRow({children:[cell("Sample",{width:col1,shade:"EEF4FB",bold:true}),cell("Sample "+t.sample,{width:col2})]})]: []),
-            ...(t.dateStart?[new TableRow({children:[cell("Date début",{width:col1,shade:"EEF4FB",bold:true}),cell(t.dateStart,{width:col2})]})]: []),
-            ...(t.dateEnd?[new TableRow({children:[cell("Date fin prévue",{width:col1,shade:"EEF4FB",bold:true}),cell(t.dateEnd,{width:col2})]})]: []),
-            ...(t.days?[new TableRow({children:[cell("Durée prévue",{width:col1,shade:"EEF4FB",bold:true}),cell(t.days+" jour(s)",{width:col2})]})]: []),
-            ...(allPeople[0]?[new TableRow({children:[cell("Préparé par",{width:col1,shade:"EEF4FB",bold:true}),cell(allPeople[0],{width:col2})]})]: []),
-            ...(allPeople.length>1?[new TableRow({children:[cell("Réalisé par",{width:col1,shade:"EEF4FB",bold:true}),cell(allPeople.join(", "),{width:col2})]})]: []),
-            ...(linkedCerts.length?[new TableRow({children:[cell("Certifications",{width:col1,shade:"EEF4FB",bold:true}),cell(linkedCerts.map(c=>c.name).join(", "),{width:col2})]})]: []),
-            new TableRow({children:[cell("Version",{width:col1,shade:"EEF4FB",bold:true}),cell("1.0",{width:col2})]}),
-            new TableRow({children:[cell("Date",{width:col1,shade:"EEF4FB",bold:true}),cell(new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}),{width:col2})]}),
+            ...(t.type?[new TableRow({children:[cell("Type",{width:col1,shade:"F0EFFE",bold:true}),cell(t.type,{width:col2})]})]: []),
+            new TableRow({children:[cell("Statut",{width:col1,shade:"F0EFFE",bold:true}),cell(STATUS[t.status]||'',{width:col2})]}),
+            ...(t.domain?[new TableRow({children:[cell("Domaine",{width:col1,shade:"F0EFFE",bold:true}),cell(t.domain,{width:col2})]})]: []),
+            ...(t.sample?[new TableRow({children:[cell("Sample",{width:col1,shade:"F0EFFE",bold:true}),cell("Sample "+t.sample,{width:col2})]})]: []),
+            ...(t.dateStart?[new TableRow({children:[cell("Date début",{width:col1,shade:"F0EFFE",bold:true}),cell(t.dateStart,{width:col2})]})]: []),
+            ...(t.dateEnd?[new TableRow({children:[cell("Date fin prévue",{width:col1,shade:"F0EFFE",bold:true}),cell(t.dateEnd,{width:col2})]})]: []),
+            ...(t.days?[new TableRow({children:[cell("Durée prévue",{width:col1,shade:"F0EFFE",bold:true}),cell(t.days+" jour(s)",{width:col2})]})]: []),
+            ...(allPeople[0]?[new TableRow({children:[cell("Préparé par",{width:col1,shade:"F0EFFE",bold:true}),cell(allPeople[0],{width:col2})]})]: []),
+            ...(allPeople.length>1?[new TableRow({children:[cell("Réalisé par",{width:col1,shade:"F0EFFE",bold:true}),cell(allPeople.join(", "),{width:col2})]})]: []),
+            ...(linkedCerts.length?[new TableRow({children:[cell("Certifications",{width:col1,shade:"F0EFFE",bold:true}),cell(linkedCerts.map(c=>c.name).join(", "),{width:col2})]})]: []),
+            new TableRow({children:[cell("Version",{width:col1,shade:"F0EFFE",bold:true}),cell("1.0",{width:col2})]}),
+            new TableRow({children:[cell("Date",{width:col1,shade:"F0EFFE",bold:true}),cell(new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}),{width:col2})]}),
           ]
         }),
         pEmpty(), pEmpty(),

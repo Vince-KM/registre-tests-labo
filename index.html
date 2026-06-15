@@ -537,6 +537,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <button class="btn" onclick="openCalendar()"><i class="ti ti-calendar-month"></i> Calendrier</button>
         <button class="btn purple" onclick="openCertModal()"><i class="ti ti-certificate"></i> Certifications</button>
         <button class="btn" onclick="openEquipModal()"><i class="ti ti-tool"></i> Équipements</button>
+        <button class="btn" onclick="openCardsModal()"><i class="ti ti-cpu"></i> Cartes</button>
         <button class="btn" onclick="exportPDF()"><i class="ti ti-file-type-pdf"></i> PDF</button>
         <button class="btn" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
         <button class="btn primary" onclick="openModal()"><i class="ti ti-plus"></i> Nouveau test</button>
@@ -655,6 +656,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
         <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
       </div>
+      <div class="sep"></div>
+      <div id="f-card-section"></div>
       <div class="sep"></div>
       <div id="f-cert-section"></div>
       <div class="sep"></div>
@@ -835,10 +838,44 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="day-panel-body" id="day-panel-body"></div>
 </div>
 
+<!-- MODAL CARTES ÉLECTRONIQUES -->
+<div class="equip-overlay hidden" id="cards-overlay">
+  <div class="equip-modal">
+    <div class="modal-header">
+      <h2><i class="ti ti-cpu" style="color:var(--accent);font-size:18px;"></i> Inventaire des cartes électroniques</h2>
+      <button class="modal-close" onclick="closeCardsModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:0 20px 8px;overflow-x:auto;">
+      <table class="equip-table" id="cards-table">
+        <thead>
+          <tr>
+            <th>Nom</th><th>Version</th><th>Fonctionnalité</th><th>Commentaire</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="cards-tbody"></tbody>
+      </table>
+      <div id="cards-empty" style="text-align:center;padding:2rem;color:var(--text3);display:none;">
+        <i class="ti ti-cpu" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3;"></i>
+        Aucune carte enregistrée. Ajoutez-en ci-dessous.
+      </div>
+    </div>
+    <div class="equip-add-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="field"><label>Nom de la carte *</label><input type="text" id="cd-name" placeholder="Ex : BMS Master, Gate Driver…"/></div>
+      <div class="field"><label>Version</label><input type="text" id="cd-version" placeholder="Ex : v2.1, Rev C…"/></div>
+      <div class="field"><label>Fonctionnalité</label><input type="text" id="cd-func" placeholder="Ex : Gestion batterie, Pilotage MOSFET…"/></div>
+      <div class="field"><label>Commentaire</label><input type="text" id="cd-comment" placeholder="Remarques, état, emplacement…"/></div>
+      <div class="field full" style="display:flex;align-items:flex-end;gap:8px;">
+        <button class="btn primary" onclick="saveCard()" style="flex-shrink:0;"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let tests = [];
 let certifications = [];
 let equipments = []; // liste des équipements du labo
+let cards = []; // inventaire des cartes électroniques
 let tempD = [];
 let editingCards = {};
 let _previewMode = false; // mode aperçu global activé
@@ -898,6 +935,7 @@ const SP_CONFIG = {
   testsFile: 'lab_tests_v3.json',
   certsFile: 'lab_certs_v1.json',
   equipFile: 'lab_equip_v1.json',
+  cardsFile: 'lab_cards_v1.json',
 
   // -------------------------------------------------------
   // PARTAGE ÉQUIPE — à remplir pour que tout le monde
@@ -1019,26 +1057,32 @@ async function loadFromSharePoint(){
   const token = await getToken();
   if(!token){ loadLocalFallback(); return; }
   try{
-    const [rTests, rCerts, rEquip] = await Promise.all([
+    const [rTests, rCerts, rEquip, rCards] = await Promise.all([
       fetch(spUrl(SP_CONFIG.testsFile), {headers:{Authorization:`Bearer ${token}`}}),
       fetch(spUrl(SP_CONFIG.certsFile), {headers:{Authorization:`Bearer ${token}`}}),
-      fetch(spUrl(SP_CONFIG.equipFile), {headers:{Authorization:`Bearer ${token}`}})
+      fetch(spUrl(SP_CONFIG.equipFile), {headers:{Authorization:`Bearer ${token}`}}),
+      fetch(spUrl(SP_CONFIG.cardsFile), {headers:{Authorization:`Bearer ${token}`}})
     ]);
     if(rTests.ok) tests = await rTests.json(); else tests = [];
     if(rCerts.ok) certifications = await rCerts.json(); else certifications = [];
-    // Équipements : SharePoint si non vide, sinon localStorage
+    // Équipements
     const localEquip = ()=>{ try{const r=localStorage.getItem('lab_equip_v1');return r?JSON.parse(r):[];}catch(e){return [];} };
     if(rEquip.ok){
       const remoteEquip = await rEquip.json();
       equipments = (remoteEquip&&remoteEquip.length>0) ? remoteEquip : localEquip();
-      // Si local avait des données et SharePoint était vide, on sync SharePoint
       if((!remoteEquip||remoteEquip.length===0) && equipments.length>0){
-        const token2=await getToken();
-        if(token2) saveToSharePoint(SP_CONFIG.equipFile, equipments);
+        const token2=await getToken(); if(token2) saveToSharePoint(SP_CONFIG.equipFile, equipments);
       }
-    } else {
-      equipments = localEquip();
-    }
+    } else { equipments = localEquip(); }
+    // Cartes électroniques
+    const localCards = ()=>{ try{const r=localStorage.getItem('lab_cards_v1');return r?JSON.parse(r):[];}catch(e){return [];} };
+    if(rCards.ok){
+      const remoteCards = await rCards.json();
+      cards = (remoteCards&&remoteCards.length>0) ? remoteCards : localCards();
+      if((!remoteCards||remoteCards.length===0) && cards.length>0){
+        const token3=await getToken(); if(token3) saveToSharePoint(SP_CONFIG.cardsFile, cards);
+      }
+    } else { cards = localCards(); }
     setSyncMsg('<i class="ti ti-cloud-check" style="color:var(--success);vertical-align:-2px;"></i> Synchronisé');
     setTimeout(()=>setSyncMsg(''), 3000);
     startPolling();
@@ -1056,6 +1100,7 @@ function loadLocalFallback(){
   try{const r=localStorage.getItem('lab_tests_v3');if(r)tests=JSON.parse(r);}catch(e){tests=[];}
   try{const r=localStorage.getItem('lab_certs_v1');if(r)certifications=JSON.parse(r);}catch(e){certifications=[];}
   try{const r=localStorage.getItem('lab_equip_v1');if(r)equipments=JSON.parse(r);}catch(e){equipments=[];}
+  try{const r=localStorage.getItem('lab_cards_v1');if(r)cards=JSON.parse(r);}catch(e){cards=[];}
   updateCertFilter();
   render();
 }
@@ -1147,6 +1192,18 @@ async function persistEquip(){
     }
   }catch(e){ toast('Erreur sauvegarde équipements.','danger'); }
   checkCalibAlerts();
+}
+
+async function persistCards(){
+  try{localStorage.setItem('lab_cards_v1',JSON.stringify(cards));}catch(e){}
+  if(!currentAccount) return;
+  try{
+    const token = await getToken();
+    if(token){
+      const ok = await saveToSharePoint(SP_CONFIG.cardsFile, cards);
+      if(!ok) toast('Erreur sauvegarde cartes SharePoint.','danger');
+    }
+  }catch(e){ toast('Erreur sauvegarde cartes.','danger'); }
 }
 
 async function persistCerts(){
@@ -1267,6 +1324,86 @@ async function refreshAllAttCounts(){
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+/* ══ MODULE CARTES ÉLECTRONIQUES ══ */
+function openCardsModal(){
+  renderCardsTable();
+  document.getElementById('cards-overlay').classList.remove('hidden');
+}
+function closeCardsModal(){
+  document.getElementById('cards-overlay').classList.add('hidden');
+}
+
+let _editingCardIdx = -1;
+
+function renderCardsTable(){
+  const tbody = document.getElementById('cards-tbody');
+  const empty = document.getElementById('cards-empty');
+  if(!cards.length){ tbody.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  tbody.innerHTML = cards.map((c,i) => {
+    if(_editingCardIdx===i){
+      return '<tr style="background:rgba(34,211,160,.05);">'
+        +'<td><input type="text" id="cd-edit-name" value="'+esc(c.name||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--success);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="cd-edit-version" value="'+esc(c.version||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="cd-edit-func" value="'+esc(c.func||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td><input type="text" id="cd-edit-comment" value="'+esc(c.comment||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
+        +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+          +'<button class="btn xs success" onclick="saveEditCard('+i+')" title="Enregistrer"><i class="ti ti-check"></i></button>'
+          +'<button class="btn xs ghost" onclick="cancelEditCard()" title="Annuler"><i class="ti ti-x"></i></button>'
+        +'</td></tr>';
+    }
+    return '<tr>'
+      +'<td style="font-weight:600;">'+esc(c.name||'')+'</td>'
+      +'<td><code style="font-family:var(--mono);font-size:12px;background:var(--bg3);padding:1px 6px;border-radius:4px;">'+esc(c.version||'—')+'</code></td>'
+      +'<td>'+esc(c.func||'—')+'</td>'
+      +'<td style="color:var(--text3);font-size:12px;">'+esc(c.comment||'—')+'</td>'
+      +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+        +'<button class="btn xs ghost" onclick="startEditCard('+i+')" title="Modifier"><i class="ti ti-pencil"></i></button>'
+        +'<button class="btn xs danger-ghost" onclick="deleteCard('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button>'
+      +'</td></tr>';
+  }).join('');
+}
+
+function startEditCard(i){ _editingCardIdx=i; renderCardsTable(); setTimeout(()=>document.getElementById('cd-edit-name')?.focus(),50); }
+function cancelEditCard(){ _editingCardIdx=-1; renderCardsTable(); }
+
+function saveEditCard(i){
+  const c=cards[i];
+  c.name    = (document.getElementById('cd-edit-name')?.value||'').trim();
+  c.version = (document.getElementById('cd-edit-version')?.value||'').trim();
+  c.func    = (document.getElementById('cd-edit-func')?.value||'').trim();
+  c.comment = (document.getElementById('cd-edit-comment')?.value||'').trim();
+  _editingCardIdx=-1;
+  persistCards();
+  renderCardsTable();
+  toast('"'+c.name+'" mis à jour.','success');
+}
+
+function saveCard(){
+  const name=(document.getElementById('cd-name')?.value||'').trim();
+  if(!name){ document.getElementById('cd-name')?.focus(); toast("Le nom de la carte est requis.",'danger'); return; }
+  cards.push({
+    id:uid(),
+    name,
+    version:(document.getElementById('cd-version')?.value||'').trim(),
+    func:   (document.getElementById('cd-func')?.value||'').trim(),
+    comment:(document.getElementById('cd-comment')?.value||'').trim(),
+  });
+  persistCards();
+  ['cd-name','cd-version','cd-func','cd-comment'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderCardsTable();
+  toast('"'+name+'" ajouté.','success');
+}
+
+function deleteCard(i){
+  const c=cards[i];
+  if(!confirm('Supprimer "'+esc(c.name)+'" ?')) return;
+  cards.splice(i,1);
+  persistCards();
+  renderCardsTable();
+  toast('Carte supprimée.','info');
+}
 
 /* ══ SAMPLE ══ */
 function selectSample(prefix, val){
@@ -1823,6 +1960,7 @@ function render(){
           ${detectConflicts(t).length?'<span class="chip chip-conflict"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Conflit</span>':''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
+          ${(t.cardIds&&t.cardIds.length)?`<span class="chip" style="background:rgba(107,110,232,.1);color:var(--accent);"><i class="ti ti-cpu" style="font-size:11px;"></i> ${t.cardIds.length}</span>`:''}
           ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
           ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
           ${delivs.length?`<span class="chip chip-files"><i class="ti ti-checklist" style="font-size:12px;"></i>${delivs.length}</span>`:''}
@@ -1883,6 +2021,10 @@ function renderViewBody(t){
       ${(t.links&&t.links.length)?`<div class="section">
         <div class="section-title"><i class="ti ti-link" style="font-size:13px;"></i> Liens entre tests</div>
         ${t.links.map(l=>{const linked=tests.find(x=>x.id===l.testId);return linked?`<div class="link-item"><span class="link-type-badge ${l.type==='depends'?'link-depends':l.type==='blocks'?'link-blocks':'link-related'}">${l.type==='depends'?'Dépend de':l.type==='blocks'?'Bloque':'Lié à'}</span><span style="flex:1;">${esc(linked.name)}</span><button class="btn xs ghost" onclick="removeLink('${t.id}','${l.testId}')"><i class="ti ti-x"></i></button></div>`:'';}).join('')}
+      </div>`:''}
+      ${(t.cardIds&&t.cardIds.length)?`<div class="section">
+        <div class="section-title"><i class="ti ti-cpu" style="font-size:13px;"></i> Cartes électroniques</div>
+        <div class="cert-chips-view">${cards.filter(c=>(t.cardIds||[]).includes(c.id)).map(c=>'<span class="cert-chip-norm" style="background:rgba(107,110,232,.1);color:var(--accent);border-color:rgba(107,110,232,.2);"><i class="ti ti-cpu" style="font-size:12px;"></i> '+esc(c.name)+(c.version?' '+esc(c.version):'')+'</span>').join('')}</div>
       </div>`:''}
       <div class="section">
         <div class="section-title"><i class="ti ti-certificate" style="font-size:13px;"></i> Appartenance</div>
@@ -1979,6 +2121,14 @@ function renderEditForm(t, delivs){
         <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
       </div>
       <div class="edit-sep"></div>
+      <div class="efield" style="margin-bottom:0;" id="e-card-section-wrap-${t.id}">
+        <label style="margin-bottom:8px;">Cartes électroniques utilisées</label>
+        <div class="cert-checks" id="e-card-checks-${t.id}">${cards.length
+          ? cards.map(c=>`<div class="cert-check-item"><input type="checkbox" id="e-card-${c.id}-${t.id}" ${(t.cardIds||[]).includes(c.id)?'checked':''}/><label class="cc-label" for="e-card-${c.id}-${t.id}">${esc(c.name)}${c.version?` <small>${esc(c.version)}</small>`:''} ${c.func?'— '+esc(c.func):''}</label></div>`).join('')
+          : '<div style="font-size:12px;color:var(--text3);padding:6px 0;">Aucune carte enregistrée.</div>'
+        }</div>
+      </div>
+      <div class="edit-sep"></div>
       <div class="efield" style="margin-bottom:0;">
         <label style="margin-bottom:8px;">Appartenance &amp; certifications</label>
         <div class="rnd-toggle">
@@ -2070,6 +2220,7 @@ function saveEdit(id){
   t.description=(document.getElementById('e-desc-'+id)?.value||'').trim();
   t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
   t.certIds=certifications.filter(c=>document.getElementById('e-cert-'+c.id+'-'+id)?.checked).map(c=>c.id);
+  t.cardIds=cards.filter(c=>document.getElementById('e-card-'+c.id+'-'+id)?.checked).map(c=>c.id);
   t.deliverables=[...(editingCards[id]?.deliverables||[])];
   // Générer l'entrée d'historique
   if(!t.history) t.history=[];
@@ -2205,6 +2356,21 @@ function toggle(id){
 }
 
 /* ---- MODAL NOUVEAU TEST ---- */
+function renderModalCards(){
+  const el=document.getElementById('f-card-section'); if(!el) return;
+  const label='<label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:8px;">Cartes électroniques utilisées</label>';
+  if(!cards.length){
+    el.innerHTML=label+'<div style="font-size:12px;color:var(--text3);padding:4px 0;">Aucune carte enregistrée. <button class="btn xs ghost" onclick="openCardsModal()"><i class="ti ti-plus" style="font-size:11px;"></i> Gérer les cartes</button></div>';
+    return;
+  }
+  const checksHtml=cards.map(c=>`
+    <div class="cert-check-item">
+      <input type="checkbox" id="f-card-${c.id}"/>
+      <label class="cc-label" for="f-card-${c.id}">${esc(c.name)}${c.version?` <small>${esc(c.version)}</small>`:''} ${c.func?'— '+esc(c.func):''}${c.comment?`<br><small>${esc(c.comment)}</small>`:''}</label>
+    </div>`).join('');
+  el.innerHTML=label+`<div class="cert-checks">${checksHtml}</div>`;
+}
+
 function renderModalCerts(){
   const el=document.getElementById('f-cert-section');if(!el)return;
   const label=`<label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:8px;">Appartenance &amp; certifications</label>`;
@@ -2248,6 +2414,7 @@ function openModal(){
   if(fcRow) fcRow.style.display='none';
   document.getElementById('f-status').value='pending';
   document.getElementById('f-deliv-list').innerHTML='';
+  renderModalCards();
   renderModalCerts();
   setTimeout(()=>renderEquipChips('f-equip-chips'),50);
   document.getElementById('overlay').classList.remove('hidden');
@@ -2296,6 +2463,7 @@ function saveNew(){
     description:document.getElementById('f-desc').value.trim(),
     deliverables:[...tempD],
     certIds, isRnD,
+    cardIds: cards.filter(c=>document.getElementById('f-card-'+c.id)?.checked).map(c=>c.id),
     links:[],
     history:[{ts:Date.now(),user:creator,action:'Création du test'}],
     updatedAt: Date.now()
@@ -3009,7 +3177,7 @@ async function exportExcel(){
     'Domaine','Sample','Date début','Date fin','Durée (j)',
     'Matériel / équipement','Description / protocole',
     'Livrables','R&D','Certifications',
-    'Docs de référence','Comptes rendus & livrables',
+    'Docs de référence','Comptes rendus & livrables','Cartes électroniques',
     'Liens entre tests'
   ]];
 
@@ -3226,6 +3394,15 @@ async function exportPDF(){
     ].filter(Boolean).join('   ·   ');
     if(meta){const ls=doc.splitTextToSize(meta,CW-8);doc.text(ls,M+4,y);y+=ls.length*5;}
 
+    // Cartes électroniques
+    const linkedCards=cards.filter(c=>(t.cardIds||[]).includes(c.id));
+    if(linkedCards.length){
+      chk(8);
+      bold('Cartes électroniques :',M+4,y,[60,60,60]);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
+      const lsc=doc.splitTextToSize(linkedCards.map(c=>c.name+(c.version?' '+c.version:'')).join(', '),CW-38);
+      doc.text(lsc,M+38,y);y+=lsc.length*4.5+1;
+    }
     // Appartenance
     const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
     if(t.isRnD||linkedCerts.length){
@@ -3289,7 +3466,8 @@ async function exportPDF(){
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
 document.getElementById('equip-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('equip-overlay'))closeEquipModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeDayPanel();closeEquipModal();closeCalendar();}});
+document.getElementById('cards-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cards-overlay'))closeCardsModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeDayPanel();closeCardsModal();closeEquipModal();closeCalendar();}});
 document.getElementById('cal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cal-overlay'))closeCalendar();});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser

@@ -3225,23 +3225,26 @@ async function exportExcel(){
   // Scan des PJ manquantes avant export
   toast('Préparation de l\'export…','info');
   for(const t of tests){
-    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
-    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+    if(!_attCache[t.id]){    const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){    const items=await listSpFolder(t.name,null,'ref');     if(items) _refCache[t.id]={items,ts:Date.now()}; }
+    if(!_schemaCache[t.id]){ const items=await listSpFolder(t.name,null,'schemas'); if(items) _schemaCache[t.id]={items,ts:Date.now()}; }
   }
 
   const rows = [[
     'N°','Nom du test','Responsable','Équipe','Type','Statut','Classe échec',
     'Domaine','Sample','Date début','Date fin','Durée (j)',
     'Matériel / équipement','Description / protocole',
-    'Livrables','R&D','Certifications',
-    'Docs de référence','Comptes rendus & livrables','Cartes électroniques',
+    'Livrables','R&D','Certifications','Cartes électroniques',
+    'Docs de référence','Schémas électriques','Comptes rendus & livrables',
     'Liens entre tests'
   ]];
 
   tests.forEach(function(t,i){
-    var certs = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(' | ');
-    var refFiles  = _refCache[t.id]  ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ')  : '';
-    var rptFiles  = _attCache[t.id]  ? _attCache[t.id].items.map(function(f){return f.name;}).join(' | ')  : '';
+    var certs      = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(' | ');
+    var cardNames  = cards.filter(function(c){return (t.cardIds||[]).includes(c.id);}).map(function(c){return c.name+(c.version?' '+c.version:'');}).join(' | ');
+    var refFiles   = _refCache[t.id]    ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ')    : '';
+    var schFiles   = _schemaCache[t.id] ? _schemaCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
+    var rptFiles   = _attCache[t.id]    ? _attCache[t.id].items.map(function(f){return f.name;}).join(' | ')    : '';
     var links = (t.links||[]).map(function(l){
       var linked=tests.find(function(x){return x.id===l.testId;});
       if(!linked) return '';
@@ -3258,8 +3261,6 @@ async function exportExcel(){
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'',
       t.sample||'',
-      t.owner||'',
-      (t.team||[]).join(' | '),
       t.dateStart||'',
       t.dateEnd||'',
       t.days||'',
@@ -3268,7 +3269,9 @@ async function exportExcel(){
       (t.deliverables||[]).join(' | '),
       t.isRnD?'Oui':'',
       certs,
+      cardNames,
       refFiles,
+      schFiles,
       rptFiles,
       links
     ]);
@@ -3403,8 +3406,9 @@ async function exportPDF(){
   // Scan des PJ manquantes avant export
   toast('Préparation de l\'export…','info');
   for(const t of tests){
-    if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
-    if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
+    if(!_attCache[t.id]){    const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
+    if(!_refCache[t.id]){    const items=await listSpFolder(t.name,null,'ref');     if(items) _refCache[t.id]={items,ts:Date.now()}; }
+    if(!_schemaCache[t.id]){ const items=await listSpFolder(t.name,null,'schemas'); if(items) _schemaCache[t.id]={items,ts:Date.now()}; }
   }
 
   const {jsPDF}=window.jspdf;
@@ -3501,6 +3505,14 @@ async function exportPDF(){
       chk(10);bold('Documents de référence ('+refItems.length+') :',M+4,y,[60,60,60]);y+=5;
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
       refItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
+    }
+
+    // Pièces jointes — Schémas
+    const schItems=_schemaCache[t.id]?_schemaCache[t.id].items:[];
+    if(schItems.length){
+      chk(10);bold('Schémas électriques ('+schItems.length+') :',M+4,y,[60,60,60]);y+=5;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+      schItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
     }
 
     // Pièces jointes — Rapports

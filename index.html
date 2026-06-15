@@ -1294,14 +1294,14 @@ async function refreshAllAttCounts(){
 
       // ── Mise à jour des compteurs de pièces jointes ──
       // Lit Rapports/ et Reference/ séparément (pas la racine qui contient les sous-dossiers)
-      const reportItems  = await listSpFolder(t.name, null, 'reports');
-      const refItems     = await listSpFolder(t.name, null, 'ref');
-      const schemaItems  = await listSpFolder(t.name, null, 'schemas');
-      if(reportItems !== null) _attCache[t.id]    = { items: reportItems, ts: Date.now() };
-      if(refItems !== null)    _refCache[t.id]    = { items: refItems,    ts: Date.now() };
-      if(schemaItems !== null) _schemaCache[t.id] = { items: schemaItems, ts: Date.now() };
+      const reportItems = await listSpFolder(t.name, null, 'reports');
+      const refItems    = await listSpFolder(t.name, null, 'ref');
+      if(reportItems !== null && _attCache[t.id]) _attCache[t.id] = { items: reportItems, ts: Date.now() };
+      else if(reportItems !== null) _attCache[t.id] = { items: reportItems, ts: Date.now() };
+      if(refItems !== null && _refCache[t.id]) _refCache[t.id] = { items: refItems, ts: Date.now() };
+      else if(refItems !== null) _refCache[t.id] = { items: refItems, ts: Date.now() };
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = (reportItems?reportItems.length:0) + (refItems?refItems.length:0) + (schemaItems?schemaItems.length:0) + localCount;
+      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + localCount;
       const prev = _attCount[t.id];
       _attCount[t.id] = total;
       if(prev !== total){
@@ -2046,6 +2046,16 @@ function renderViewBody(t){
         </label>
       </div>
       <div class="att-divider"></div>
+      <!-- Schémas électriques -->
+      <div class="section att-section-schema">
+        <div class="att-section-title"><i class="ti ti-circuit-board" style="font-size:13px;color:var(--success);"></i><span style="color:var(--success);">Schémas électriques</span><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:var(--font);text-transform:none;letter-spacing:0;"> — plans, diagrammes, schémas de câblage</span></div>
+        <div class="att-list" id="schemalist-${t.id}"></div>
+        <label class="upload-zone" for="up-schema-${t.id}" style="border-color:rgba(34,211,160,.35);">
+          <i class="ti ti-upload" style="font-size:16px;vertical-align:-2px;margin-right:6px;color:var(--success);"></i>Déposer un schéma — plan électrique, diagramme, photo…
+          <input type="file" id="up-schema-${t.id}" style="display:none" multiple onchange="handleUpload(event,'${t.id}','schemas')"/>
+        </label>
+      </div>
+      <div class="att-divider"></div>
       <div class="section">
         <div class="att-section-title"><i class="ti ti-paperclip" style="font-size:13px;color:var(--accent);"></i><span style="color:var(--accent);">Comptes rendus &amp; livrables</span><span style="font-size:10px;font-weight:400;color:var(--text3);font-family:var(--font);text-transform:none;letter-spacing:0;"> — rapports, relevés, datasets</span></div>
         <div class="att-list" id="attlist-${t.id}">
@@ -2182,7 +2192,6 @@ function cancelEdit(id){
   if(body){body.classList.add('open');card.classList.add('expanded');}
   refreshAttList(id);
   refreshRefList(id);
-  refreshSchemaList(id);
 }
 
 function saveEdit(id){
@@ -2326,17 +2335,9 @@ function toggleGlobalPreview(){
       ? '<i class="ti ti-eye-off" style="font-size:15px;"></i> Aperçu'
       : '<i class="ti ti-eye" style="font-size:15px;"></i> Aperçu';
   }
-  // Affiche/masque les panneaux sur toutes les cartes visibles
-  document.querySelectorAll('[id^="preview-"]').forEach(panel => {
-    const id = panel.id.replace('preview-','');
-    const body = document.getElementById('body-'+id);
-    const isOpen = body && body.classList.contains('open');
-    const t = tests.find(x=>x.id===id);
-    const hasContent = t && (t.material || t.description);
-    if(hasContent && !isOpen){
-      panel.classList.toggle('open', _previewMode);
-    }
-  });
+  // Re-render pour que les preview-panels se mettent à jour
+  // (le template génère la classe 'open' en fonction de _previewMode)
+  render();
 }
 
 function toggle(id){
@@ -2717,72 +2718,44 @@ function renderSpItems(items, testId, section='reports'){
   }).join('');
 }
 
-// ── Schémas électriques — copie exacte de refreshRefList ──
+// ── Schémas électriques ──
 async function refreshSchemaList(testId, forceRefresh){
   const t=tests.find(x=>x.id===testId); if(!t) return;
   const el=document.getElementById('schemalist-'+testId); if(!el) return;
-
-  if(!currentAccount){
-    el.innerHTML=renderLocalAtts(t);
-    return;
-  }
-
+  if(!currentAccount){ el.innerHTML=''; return; }
   const cached=_schemaCache[testId];
-  const now=Date.now();
-  const stale=!cached || (now - cached.ts > ATT_CACHE_TTL);
-
-  if(cached && !forceRefresh){
-    el.innerHTML=renderSpItems(cached.items, testId, 'schemas');
+  const now=Date.now(); const stale=!cached||(now-cached.ts>ATT_CACHE_TTL);
+  if(cached&&!forceRefresh){
+    el.innerHTML=renderSpItems(cached.items,testId,'schemas');
     if(stale){
-      const hint=document.createElement('div');
-      hint.id='schema-hint-'+testId;
+      const hint=document.createElement('div'); hint.id='schema-hint-'+testId;
       hint.style.cssText='font-size:11px;color:var(--text3);padding:4px 4px 0;display:flex;align-items:center;gap:5px;';
       hint.innerHTML='<span class="sync-spinner" style="width:10px;height:10px;border-width:1.5px;"></span>Actualisation…';
       el.appendChild(hint);
-    } else {
-      return;
-    }
+    } else { return; }
   } else {
     el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 4px;display:flex;align-items:center;gap:6px;"><span class="sync-spinner"></span>Chargement…</div>`;
   }
-
-  const tokenR=await getToken();
-  let items;
+  const tokenR=await getToken(); let items;
   if(t.spSchemasFolderId){
     try{
       const res=await fetch(`${spItemUrl(t.spSchemasFolderId)}/children?$select=id,name,size,file,lastModifiedDateTime`,{headers:{Authorization:`Bearer ${tokenR}`}});
       if(res.status===404){
-        t.spSchemasFolderId = null;
+        t.spSchemasFolderId=null;
         const res2=await fetch(spFolderChildren(attFolderPath(t.name,'schemas')),{headers:{Authorization:`Bearer ${tokenR}`}});
-        if(res2.status===404) items=[];
-        else if(!res2.ok) items=null;
-        else {
-          items=(await res2.json()).value?.filter(i=>i.file)||[];
-          try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}}); if(r.ok){ const m=await r.json(); t.spSchemasFolderId=m.id; } }catch(e){}
-        }
-      }
-      else if(!res.ok) items=null;
+        items=(res2.status===404||!res2.ok)?[]:((await res2.json()).value?.filter(i=>i.file)||[]);
+        if(items.length){ try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}}); if(r.ok){const m=await r.json();t.spSchemasFolderId=m.id;} }catch(e){} }
+      } else if(!res.ok) items=null;
       else items=(await res.json()).value?.filter(i=>i.file)||[];
     }catch(e){ items=null; }
   } else {
-    items = await listSpFolder(t.name, null, 'schemas');
-    if(items !== null && tokenR){
-      try{
-        const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}});
-        if(r.ok){ const m=await r.json(); t.spSchemasFolderId=m.id; }
-      }catch(e){}
-    }
+    items=await listSpFolder(t.name,null,'schemas');
+    if(items!==null&&tokenR){ try{ const r=await fetch(`${driveBase()}/root:/${attFolderPath(t.name,'schemas')}`,{headers:{Authorization:`Bearer ${tokenR}`}}); if(r.ok){const m=await r.json();t.spSchemasFolderId=m.id;} }catch(e){} }
   }
-
-  if(items===null){
-    if(!cached){ el.innerHTML=`<div style="font-size:12px;color:var(--warning);padding:6px 4px;"><i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:4px;"></i>Impossible de lire le dossier Schemas.</div>`; }
-    else { document.getElementById('schema-hint-'+testId)?.remove(); }
-    return;
-  }
-
-  _schemaCache[testId]={ items, ts:Date.now() };
+  if(items===null){ if(!cached){ const elN=document.getElementById('schemalist-'+testId); if(elN) elN.innerHTML='<div style="font-size:12px;color:var(--warning);padding:6px 4px;">Impossible de lire le dossier Schemas.</div>'; } else document.getElementById('schema-hint-'+testId)?.remove(); return; }
+  _schemaCache[testId]={items,ts:Date.now()};
   const elNow=document.getElementById('schemalist-'+testId);
-  if(elNow){ elNow.innerHTML=renderSpItems(items, testId, 'schemas'); }
+  if(elNow) elNow.innerHTML=renderSpItems(items,testId,'schemas');
 }
 
 // ── Documents de référence — copie exacte de refreshAttList ──
@@ -3251,7 +3224,6 @@ async function exportExcel(){
   for(const t of tests){
     if(!_attCache[t.id]){ const items=await listSpFolder(t.name,null,'reports'); if(items) _attCache[t.id]={items,ts:Date.now()}; }
     if(!_refCache[t.id]){ const items=await listSpFolder(t.name,null,'ref'); if(items) _refCache[t.id]={items,ts:Date.now()}; }
-    if(!_schemaCache[t.id]){ const items=await listSpFolder(t.name,null,'schemas'); if(items) _schemaCache[t.id]={items,ts:Date.now()}; }
   }
 
   const rows = [[
@@ -3259,7 +3231,7 @@ async function exportExcel(){
     'Domaine','Sample','Date début','Date fin','Durée (j)',
     'Matériel / équipement','Description / protocole',
     'Livrables','R&D','Certifications',
-    'Docs de référence','Schémas électriques','Comptes rendus & livrables','Cartes électroniques',
+    'Docs de référence','Comptes rendus & livrables','Cartes électroniques',
     'Liens entre tests'
   ]];
 
@@ -3520,13 +3492,6 @@ async function exportPDF(){
       });
     }
 
-    // Schémas électriques
-    const schemaItems=_schemaCache[t.id]?_schemaCache[t.id].items:[];
-    if(schemaItems.length){
-      chk(10);bold('Schémas électriques ('+schemaItems.length+') :',M+4,y,[60,60,60]);y+=5;
-      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
-      schemaItems.forEach(a=>{chk(5);doc.text('• '+a.name+(a.size?' ('+fmt(a.size)+')':''),M+8,y);y+=4.8;});
-    }
     // Pièces jointes — Référence
     const refItems=_refCache[t.id]?_refCache[t.id].items:[];
     if(refItems.length){

@@ -23738,6 +23738,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
       </div>
       <div class="sep"></div>
+      <div id="f-equip-section"></div>
+      <div class="sep"></div>
       <div id="f-card-section"></div>
       <div class="sep"></div>
       <div id="f-cert-section"></div>
@@ -24792,35 +24794,20 @@ function checkCalibAlerts(){
 /* ---- CONFLITS DE PLANNING ---- */
 function detectConflicts(t){
   if(!t.dateStart||!t.dateEnd) return [];
+  const eqA = (t.equipIds||[]);
+  if(!eqA.length) return []; // pas d'équipements liés = pas de conflit possible
   const s1=new Date(t.dateStart); const e1=new Date(t.dateEnd);
-  const matA=(t.material||'').toLowerCase();
-
-  // Mots-clés de détection : équipements enregistrés + mots du champ matériel
-  const equipsA = equipments.filter(eq=>matA.includes((eq.type||'').toLowerCase())||matA.includes((eq.model||'').toLowerCase())||matA.includes((eq.serial||'').toLowerCase())).map(eq=>eq.id);
-
   return tests.filter(other=>{
     if(other.id===t.id||!other.dateStart||!other.dateEnd) return false;
     const s2=new Date(other.dateStart); const e2=new Date(other.dateEnd);
-    if(s1>e2||s2>e1) return false;
-    const matB=(other.material||'').toLowerCase();
-    // Conflit via équipements enregistrés
-    const sharedEquip = equipments.find(eq=>{
-      if(!equipsA.includes(eq.id)) return false;
-      return matB.includes((eq.type||'').toLowerCase())||matB.includes((eq.model||'').toLowerCase())||matB.includes((eq.serial||'').toLowerCase());
-    });
-    if(sharedEquip) return true;
-    // Fallback : mots-clés bruts > 4 chars
-    const wordsA = matA.split(/[,;\n\s]+/).filter(w=>w.length>4);
-    return wordsA.some(w=>matB.includes(w));
+    if(s1>e2||s2>e1) return false; // pas de chevauchement de dates
+    const eqB = (other.equipIds||[]);
+    return eqA.some(id=>eqB.includes(id)); // équipement commun
   }).map(other=>{
-    const matB=(other.material||'').toLowerCase();
-    const sharedEquip = equipments.find(eq=>{
-      return (matA.includes((eq.type||'').toLowerCase())||matA.includes((eq.model||'').toLowerCase()))
-          && (matB.includes((eq.type||'').toLowerCase())||matB.includes((eq.model||'').toLowerCase()));
-    });
-    const equipment = sharedEquip ? equipLabel(sharedEquip) : 
-      (t.material||'').split(/[,;\n]+/).map(m=>m.trim()).find(m=>m.length>4&&(other.material||'').toLowerCase().includes(m.toLowerCase()))||'équipement commun';
-    return {name:other.name, equipment};
+    const eqB = (other.equipIds||[]);
+    const sharedId = eqA.find(id=>eqB.includes(id));
+    const sharedEquip = equipments.find(e=>e.id===sharedId);
+    return {name:other.name, equipment: sharedEquip ? equipLabel(sharedEquip) : 'équipement commun'};
   });
 }
 
@@ -25042,6 +25029,7 @@ function render(){
           ${detectConflicts(t).length?'<span class="chip chip-conflict"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Conflit</span>':''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
+          ${(t.equipIds&&t.equipIds.length)?`<span class="chip" style="background:rgba(79,209,197,.1);color:#4dd1a1;"><i class="ti ti-tool" style="font-size:11px;"></i> ${t.equipIds.length}</span>`:''}
           ${(t.cardIds&&t.cardIds.length)?`<span class="chip" style="background:rgba(107,110,232,.1);color:var(--accent);"><i class="ti ti-cpu" style="font-size:11px;"></i> ${t.cardIds.length}</span>`:''}
           ${linkedCerts.length?`<span class="chip chip-cert-count"><i class="ti ti-certificate" style="font-size:11px;"></i> ${linkedCerts.length}</span>`:''}
           ${attCount?`<span class="chip chip-files chip-att-live"><i class="ti ti-paperclip" style="font-size:12px;"></i>${attCount}</span>`:''}
@@ -25104,6 +25092,10 @@ function renderViewBody(t){
       ${(t.links&&t.links.length)?`<div class="section">
         <div class="section-title"><i class="ti ti-link" style="font-size:13px;"></i> Liens entre tests</div>
         ${t.links.map(l=>{const linked=tests.find(x=>x.id===l.testId);return linked?`<div class="link-item"><span class="link-type-badge ${l.type==='depends'?'link-depends':l.type==='blocks'?'link-blocks':'link-related'}">${l.type==='depends'?'Dépend de':l.type==='blocks'?'Bloque':'Lié à'}</span><span style="flex:1;">${esc(linked.name)}</span><button class="btn xs ghost" onclick="removeLink('${t.id}','${l.testId}')"><i class="ti ti-x"></i></button></div>`:'';}).join('')}
+      </div>`:''}
+      ${(t.equipIds&&t.equipIds.length)?`<div class="section">
+        <div class="section-title"><i class="ti ti-tool" style="font-size:13px;"></i> Équipements utilisés</div>
+        <div class="cert-chips-view">${equipments.filter(e=>(t.equipIds||[]).includes(e.id)).map(e=>'<span class="cert-chip-norm" style="background:rgba(107,110,232,.1);color:var(--accent);border-color:rgba(107,110,232,.2);"><i class="ti ti-tool" style="font-size:12px;"></i> '+esc(e.type+(e.model?' '+e.model:''))+'</span>').join('')}</div>
       </div>`:''}
       ${(t.cardIds&&t.cardIds.length)?`<div class="section">
         <div class="section-title"><i class="ti ti-cpu" style="font-size:13px;"></i> Cartes électroniques</div>
@@ -25215,6 +25207,14 @@ function renderEditForm(t, delivs){
         <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
       </div>
       <div class="edit-sep"></div>
+      <div class="efield" style="margin-bottom:0;">
+        <label style="margin-bottom:8px;">Équipements utilisés</label>
+        <div class="cert-checks" id="e-equip-checks-${t.id}">${equipments.length
+          ? equipments.map(e=>`<div class="cert-check-item"><input type="checkbox" id="e-equip-${e.id}-${t.id}" ${(t.equipIds||[]).includes(e.id)?'checked':''}/><label class="cc-label" for="e-equip-${e.id}-${t.id}">${esc(e.type)}${e.brand?' — '+esc(e.brand):''} ${e.model?esc(e.model):''}${e.serial?' <small>'+esc(e.serial)+'</small>':''}</label></div>`).join('')
+          : '<div style="font-size:12px;color:var(--text3);padding:6px 0;">Aucun équipement enregistré. <button class=\"btn xs ghost\" onclick=\"openEquipModal()\"><i class=\"ti ti-plus\" style=\"font-size:11px;\"></i> Gérer</button></div>'
+        }</div>
+      </div>
+      <div class="edit-sep"></div>
       <div class="efield" style="margin-bottom:0;" id="e-card-section-wrap-${t.id}">
         <label style="margin-bottom:8px;">Cartes électroniques utilisées</label>
         <div class="cert-checks" id="e-card-checks-${t.id}">${cards.length
@@ -25315,6 +25315,7 @@ function saveEdit(id){
   t.description=(document.getElementById('e-desc-'+id)?.value||'').trim();
   t.isRnD=document.getElementById('e-rnd-'+id)?.checked||false;
   t.certIds=certifications.filter(c=>document.getElementById('e-cert-'+c.id+'-'+id)?.checked).map(c=>c.id);
+  t.equipIds=equipments.filter(e=>document.getElementById('e-equip-'+e.id+'-'+id)?.checked).map(e=>e.id);
   t.cardIds=cards.filter(c=>document.getElementById('e-card-'+c.id+'-'+id)?.checked).map(c=>c.id);
   t.deliverables=[...(editingCards[id]?.deliverables||[])];
   // Générer l'entrée d'historique
@@ -25445,6 +25446,21 @@ function toggle(id){
 }
 
 /* ---- MODAL NOUVEAU TEST ---- */
+function renderModalEquips(){
+  const el=document.getElementById('f-equip-section'); if(!el) return;
+  const label='<label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:8px;">Équipements utilisés</label>';
+  if(!equipments.length){
+    el.innerHTML=label+'<div style="font-size:12px;color:var(--text3);padding:4px 0;">Aucun équipement enregistré. <button class="btn xs ghost" onclick="openEquipModal()"><i class="ti ti-plus" style="font-size:11px;"></i> Gérer les équipements</button></div>';
+    return;
+  }
+  const checksHtml=equipments.map(e=>`
+    <div class="cert-check-item">
+      <input type="checkbox" id="f-equip-${e.id}"/>
+      <label class="cc-label" for="f-equip-${e.id}">${esc(e.type)}${e.brand?' — '+esc(e.brand):''} ${e.model?esc(e.model):''}${e.serial?` <small>${esc(e.serial)}</small>`:''}</label>
+    </div>`).join('');
+  el.innerHTML=label+`<div class="cert-checks">${checksHtml}</div>`;
+}
+
 function renderModalCards(){
   const el=document.getElementById('f-card-section'); if(!el) return;
   const label='<label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:8px;">Cartes électroniques utilisées</label>';
@@ -25503,6 +25519,7 @@ function openModal(){
   if(fcRow) fcRow.style.display='none';
   document.getElementById('f-status').value='pending';
   document.getElementById('f-deliv-list').innerHTML='';
+  renderModalEquips();
   renderModalCards();
   renderModalCerts();
   setTimeout(()=>renderEquipChips('f-equip-chips'),50);
@@ -25552,6 +25569,7 @@ function saveNew(){
     description:document.getElementById('f-desc').value.trim(),
     deliverables:[...tempD],
     certIds, isRnD,
+    equipIds: equipments.filter(e=>document.getElementById('f-equip-'+e.id)?.checked).map(e=>e.id),
     cardIds: cards.filter(c=>document.getElementById('f-card-'+c.id)?.checked).map(c=>c.id),
     links:[],
     history:[{ts:Date.now(),user:creator,action:'Création du test'}],

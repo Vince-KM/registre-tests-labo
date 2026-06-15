@@ -2671,19 +2671,20 @@ async function deleteByItemId(itemId, testId, fileName, section='reports'){
       else t.attachments=t.attachments.filter(a=>a.spItemId!==itemId);
     }
     toast('Fichier supprimé.','info');
-    // Suppression immédiate de l'élément dans le DOM — indépendant du cache
-    const listId = section==='ref' ? 'reflist-'+testId : 'attlist-'+testId;
+    // Suppression immédiate dans le DOM
+    const listId = section==='ref' ? 'reflist-'+testId : section==='schemas' ? 'schemalist-'+testId : 'attlist-'+testId;
     const listEl = document.getElementById(listId);
     if(listEl){
-      // Retire l'item visuellement en cherchant le bouton qui contient cet itemId
       const rows = listEl.querySelectorAll('.att-item');
-      rows.forEach(row => {
-        if(row.innerHTML.includes(itemId)) row.remove();
-      });
+      rows.forEach(row => { if(row.innerHTML.includes(itemId)) row.remove(); });
     }
-    // Met aussi à jour le cache si présent
+    // Met à jour le cache + compteur
     if(section==='ref' && _refCache[testId]){
       _refCache[testId].items = _refCache[testId].items.filter(i=>i.id!==itemId);
+      if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
+    }
+    if(section==='schemas' && _schemaCache[testId]){
+      _schemaCache[testId].items = _schemaCache[testId].items.filter(i=>i.id!==itemId);
       if(t){ _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]); }
     }
     if(section==='reports' && _attCache[testId]){

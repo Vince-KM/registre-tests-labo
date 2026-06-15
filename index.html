@@ -406,8 +406,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .calib-alert-late{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#e11d48;}
 .calib-alert-soon{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#d97706;}
 
+/* ── PANNEAU PROGRAMME DU JOUR ── */
+.day-panel{position:fixed;top:0;right:0;width:380px;height:100vh;background:var(--bg2);border-left:1.5px solid var(--border2);box-shadow:-8px 0 32px rgba(0,0,0,.2);z-index:600;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.day-panel.open{transform:translateX(0);}
+.day-panel-header{padding:20px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.day-panel-header h3{font-family:var(--title);font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px;}
+.day-panel-date{font-size:12px;color:var(--text3);font-weight:400;font-family:var(--font);}
+.day-panel-body{flex:1;overflow-y:auto;padding:14px;}
+.day-test-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:10px;transition:border-color .15s;cursor:pointer;}
+.day-test-card:hover{border-color:var(--border2);}
+.day-test-card.status-progress{border-left:3px solid var(--info);}
+.day-test-card.status-pending{border-left:3px solid var(--warning);}
+.day-test-name{font-family:var(--title);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.day-test-meta{font-size:11px;color:var(--text3);display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+.day-test-people{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.day-person-chip{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--accent-dim);color:var(--accent);}
+.day-empty{text-align:center;padding:3rem 1rem;color:var(--text3);}
+.day-empty i{font-size:36px;display:block;margin-bottom:10px;opacity:.3;}
+.day-panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:599;display:none;}
+.day-panel-overlay.open{display:block;}
+/* Bouton flottant programme du jour */
+.day-panel-btn{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:598;background:var(--accent);color:#fff;border:none;cursor:pointer;padding:14px 6px;border-radius:10px 0 0 10px;font-family:var(--title);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:8px;box-shadow:-3px 0 12px var(--accent-glow);transition:all .2s;}
+.day-panel-btn:hover{background:#5a6df5;padding-right:8px;}
+.day-panel-btn .day-badge{background:#fff;color:var(--accent);border-radius:99px;padding:2px 7px;font-size:11px;font-weight:700;writing-mode:horizontal-tb;min-width:20px;text-align:center;}
+
+/* ── SAMPLE ── */
+.sample-btns{display:flex;gap:8px;margin-top:6px;}
+.sample-btn{flex:1;padding:8px 4px;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--title);font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .18s;}
+.sample-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sample-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.chip-sample{background:rgba(167,139,250,.15);color:var(--purple);border:1px solid rgba(167,139,250,.25);}
+
+/* ── ÉQUIPE ── */
+.team-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.team-member-row{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:13px;}
+.team-member-row span{flex:1;}
+.team-member-row button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:0 2px;}
+.team-member-row button:hover{color:var(--danger);}
+.team-add-row{display:flex;gap:8px;margin-top:6px;}
+.team-add-row input{flex:1;padding:7px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:13px;}
+.team-add-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
+  .day-panel{width:100%;border-left:none;}
   .equip-add-grid{grid-template-columns:1fr;}
   .equip-add-grid .full{grid-column:1;}
   .info-row{grid-template-columns:1fr 1fr;}
@@ -580,7 +622,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="field"><label>Date de fin prévue</label><input type="date" id="f-dateend" oninput="calcDays('f-date','f-dateend','f-days')"/></div>
         <div class="field full"><label>Durée calculée</label><input type="text" id="f-days" readonly placeholder="Calculée automatiquement depuis les dates" style="background:var(--bg4);color:var(--text2);cursor:default;"/></div>
         <div class="field full"><label>Domaine d'application</label><input type="text" id="f-domain" placeholder="Ex : Automotive, BESS, Marine, Industrie, Ferroviaire…"/></div>
-        <div class="field full"><label>Responsable du test</label><input type="text" id="f-owner" placeholder="Ex : Vincent Jacob, Marc Dupont…"/></div>
+        <div class="field full"><label>Responsable du test</label><input type="text" id="f-owner" placeholder="Ex : Vincent Jacob…"/></div>
+        <div class="field full">
+          <label>Membres de l'équipe supplémentaires</label>
+          <div class="team-add-row">
+            <input type="text" id="f-team-inp" placeholder="Ajouter un membre…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember('f');}"/>
+            <button class="btn sm" onclick="addTeamMember('f')"><i class="ti ti-plus"></i></button>
+          </div>
+          <div class="team-list" id="f-team-list"></div>
+        </div>
+        <div class="field full">
+          <label>Sample</label>
+          <div class="sample-btns">
+            <button type="button" class="sample-btn" id="f-sample-A" onclick="selectSample('f','A')">Sample A</button>
+            <button type="button" class="sample-btn" id="f-sample-B" onclick="selectSample('f','B')">Sample B</button>
+            <button type="button" class="sample-btn" id="f-sample-C" onclick="selectSample('f','C')">Sample C</button>
+          </div>
+        </div>
         <div class="field full" id="f-failclass-row" style="display:none;">
           <label>Classe d'échec</label>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
@@ -759,6 +817,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
   </div>
+</div>
+
+<!-- BOUTON FLOTTANT PROGRAMME DU JOUR -->
+<button class="day-panel-btn" id="day-panel-btn" onclick="toggleDayPanel()" title="Programme du jour">
+  <span class="day-badge" id="day-badge">0</span>
+  Aujourd'hui
+</button>
+<div class="day-panel-overlay" id="day-panel-overlay" onclick="closeDayPanel()"></div>
+
+<!-- PANNEAU LATÉRAL PROGRAMME DU JOUR -->
+<div class="day-panel" id="day-panel">
+  <div class="day-panel-header">
+    <h3><i class="ti ti-calendar-today" style="color:var(--accent);font-size:16px;"></i> Programme du jour <span class="day-panel-date" id="day-panel-date"></span></h3>
+    <button class="modal-close" onclick="closeDayPanel()"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="day-panel-body" id="day-panel-body"></div>
 </div>
 
 <script>
@@ -1194,6 +1268,112 @@ async function refreshAllAttCounts(){
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
+/* ══ SAMPLE ══ */
+function selectSample(prefix, val){
+  if(!window._sampleSel) window._sampleSel={};
+  window._sampleSel[prefix] = window._sampleSel[prefix]===val ? '' : val;
+  const cur = window._sampleSel[prefix];
+  ['A','B','C'].forEach(s=>{
+    const id = prefix==='f' ? 'f-sample-'+s : 'e-sample-'+s+'-'+prefix.slice(2);
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('selected', cur===s);
+  });
+}
+
+/* ══ ÉQUIPE ══ */
+function addTeamMember(prefix){
+  const inpId = prefix==='f' ? 'f-team-inp' : 'e-team-inp-'+prefix.slice(2);
+  const listId = prefix==='f' ? 'f-team-list' : 'e-team-list-'+prefix.slice(2);
+  const inp = document.getElementById(inpId); if(!inp) return;
+  const val = inp.value.trim(); if(!val) return;
+  if(!window._teamMembers) window._teamMembers={};
+  if(!window._teamMembers[prefix]) window._teamMembers[prefix]=[];
+  window._teamMembers[prefix].push(val);
+  inp.value='';
+  renderTeamList(prefix, listId);
+}
+function removeTeamMember(prefix, i){
+  if(!window._teamMembers?.[prefix]) return;
+  window._teamMembers[prefix].splice(i,1);
+  const listId = prefix==='f' ? 'f-team-list' : 'e-team-list-'+prefix.slice(2);
+  renderTeamList(prefix, listId);
+}
+function renderTeamList(prefix, listId){
+  const el=document.getElementById(listId); if(!el) return;
+  const members=window._teamMembers?.[prefix]||[];
+  el.innerHTML=members.map((m,i)=>
+    '<div class="team-member-row"><i class="ti ti-user" style="font-size:13px;color:var(--accent);flex-shrink:0;"></i><span>'+esc(m)+'</span>'
+    +'<button onclick="removeTeamMember(&#39;'+prefix+'&#39;,'+i+')"><i class="ti ti-x"></i></button></div>'
+  ).join('');
+}
+
+/* ══ PROGRAMME DU JOUR ══ */
+let _dayPanelOpen = false;
+
+function getTodayTests(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return tests.filter(t=>{
+    // En cours
+    if(t.status==='progress') return true;
+    // Débute aujourd'hui
+    if(t.dateStart){
+      const s=new Date(t.dateStart); s.setHours(0,0,0,0);
+      if(s.getTime()===today.getTime()) return true;
+    }
+    return false;
+  });
+}
+
+function updateDayBadge(){
+  const n=getTodayTests().length;
+  const badge=document.getElementById('day-badge');
+  if(badge) badge.textContent=n;
+}
+
+function toggleDayPanel(){
+  _dayPanelOpen ? closeDayPanel() : openDayPanel();
+}
+
+function openDayPanel(){
+  _dayPanelOpen=true;
+  renderDayPanel();
+  document.getElementById('day-panel').classList.add('open');
+  document.getElementById('day-panel-overlay').classList.add('open');
+}
+
+function closeDayPanel(){
+  _dayPanelOpen=false;
+  document.getElementById('day-panel').classList.remove('open');
+  document.getElementById('day-panel-overlay').classList.remove('open');
+}
+
+function renderDayPanel(){
+  const dateEl=document.getElementById('day-panel-date');
+  if(dateEl) dateEl.textContent='— '+new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const body=document.getElementById('day-panel-body');
+  const todayTests=getTodayTests();
+  if(!todayTests.length){
+    body.innerHTML='<div class="day-empty"><i class="ti ti-calendar-off"></i><p>Aucun test planifié aujourd&#39;hui.</p></div>';
+    return;
+  }
+  body.innerHTML=todayTests.map(t=>{
+    const allPeople=[t.owner,...(t.team||[])].filter(Boolean);
+    const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
+    return '<div class="day-test-card status-'+t.status+'" onclick="closeDayPanel();setTimeout(function(){var el=document.getElementById(&#39;card-'+t.id+'&#39;);if(el){el.scrollIntoView({behavior:&#39;smooth&#39;,block:&#39;center&#39;});if(!document.getElementById(&#39;body-'+t.id+'&#39;)?.classList.contains(&#39;open&#39;))toggle(&#39;'+t.id+'&#39;);}},200)">'
+      +'<div class="day-test-name">'+esc(t.name)+'</div>'
+      +'<div class="day-test-meta">'
+      +(t.type?'<span><i class="ti ti-tag" style="font-size:10px;"></i> '+esc(t.type)+'</span>':'')
+      +(t.domain?'<span><i class="ti ti-world" style="font-size:10px;"></i> '+esc(t.domain)+'</span>':'')
+      +(t.sample?'<span><i class="ti ti-flask" style="font-size:10px;color:var(--purple);"></i> <strong style="color:var(--purple);">Sample '+esc(t.sample)+'</strong></span>':'')
+      +(t.dateStart&&t.dateEnd?'<span><i class="ti ti-calendar" style="font-size:10px;"></i> '+esc(t.dateStart)+' → '+esc(t.dateEnd)+'</span>':'')
+      +(t.material?'<span style="color:var(--text3);font-size:10px;"><i class="ti ti-tool" style="font-size:10px;"></i> '+esc(t.material.slice(0,60))+(t.material.length>60?'…':'')+'</span>':'')
+      +'</div>'
+      +(linkedCerts.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">'+linkedCerts.map(c=>'<span style="font-size:10px;background:var(--accent-dim);color:var(--accent);padding:1px 7px;border-radius:99px;">'+esc(c.name)+'</span>').join('')+'</div>':'')
+      +(allPeople.length?'<div class="day-test-people">'+allPeople.map(p=>'<span class="day-person-chip"><i class="ti ti-user" style="font-size:9px;"></i> '+esc(p)+'</span>').join('')+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
 /* ══════════════════════════════════════════════════
    MODULE ÉQUIPEMENTS
 ══════════════════════════════════════════════════ */
@@ -1580,6 +1760,8 @@ function render(){
     // Utilise le vrai compte SharePoint si disponible, sinon le JSON local
     totalFiles += _attCount[t.id] !== undefined ? _attCount[t.id] : (t.attachments||[]).length;
   });
+  updateDayBadge();
+  if(_dayPanelOpen) renderDayPanel();
   const domainSel=document.getElementById('filter-domain');
   if(domainSel){
     const cur=domainSel.value;
@@ -1636,6 +1818,8 @@ function render(){
           ${t.type?`<span class="chip chip-type">${esc(t.type)}</span>`:''}
           ${t.domain?`<span class="chip chip-domain"><i class="ti ti-world" style="font-size:11px;"></i> ${esc(t.domain)}</span>`:''}
           ${t.owner?`<span class="chip" style="background:rgba(107,110,232,.1);color:var(--accent);"><i class="ti ti-user" style="font-size:11px;"></i> ${esc(t.owner)}</span>`:''}
+          ${(t.team||[]).map(m=>`<span class="chip" style="background:rgba(107,110,232,.07);color:var(--text2);"><i class="ti ti-user" style="font-size:11px;"></i> ${esc(m)}</span>`).join('')}
+          ${t.sample?`<span class="chip chip-sample"><i class="ti ti-flask" style="font-size:11px;"></i> Sample ${esc(t.sample)}</span>`:''}
           ${detectConflicts(t).length?'<span class="chip chip-conflict"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Conflit</span>':''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
@@ -1686,7 +1870,11 @@ function renderViewBody(t){
         <div class="info-block"><div class="info-block-label">Date de début</div><div class="info-block-val">${t.dateStart||'—'}</div></div>
         <div class="info-block"><div class="info-block-label">Date de fin</div><div class="info-block-val">${t.dateEnd||'—'}</div></div>
       </div>
-      ${t.owner?`<div class="info-row" style="grid-template-columns:1fr;"><div class="info-block"><div class="info-block-label"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Responsable</div><div class="info-block-val">${esc(t.owner)}</div></div></div>`:''}
+      ${(t.owner||(t.team&&t.team.length)||t.sample)?`<div class="info-row" style="grid-template-columns:${[t.owner,t.sample,(t.team&&t.team.length)].filter(Boolean).length > 1 ? 'repeat('+[t.owner,t.sample,(t.team&&t.team.length)].filter(Boolean).length+',1fr)' : '1fr'};">
+        ${t.owner?`<div class="info-block"><div class="info-block-label"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Responsable</div><div class="info-block-val">${esc(t.owner)}</div></div>`:''}
+        ${t.sample?`<div class="info-block"><div class="info-block-label"><i class="ti ti-flask" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Sample</div><div class="info-block-val" style="color:var(--purple);font-weight:700;">Sample ${esc(t.sample)}</div></div>`:''}
+        ${(t.team&&t.team.length)?`<div class="info-block"><div class="info-block-label"><i class="ti ti-users" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Équipe</div><div class="info-block-val">${t.team.map(m=>esc(m)).join(', ')}</div></div>`:''}
+      </div>`:''}
       ${detectConflicts(t).length?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#d97706;"><i class="ti ti-alert-triangle" style="vertical-align:-2px;margin-right:6px;"></i><strong>Conflits détectés :</strong> ${detectConflicts(t).map(c=>'<span style="font-weight:600;">'+esc(c.name)+'</span> ('+esc(c.equipment)+')').join(', ')}</div>`:''} 
       ${(t.domain||t.failClass)?`<div class="info-row" style="grid-template-columns:repeat(${t.domain&&t.failClass?'2,1fr':'1,1fr'});">
         ${t.domain?`<div class="info-block"><div class="info-block-label"><i class="ti ti-world" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Domaine d'application</div><div class="info-block-val">${esc(t.domain)}</div></div>`:''}
@@ -1758,6 +1946,22 @@ function renderEditForm(t, delivs){
         <div class="efield full"><label>Durée calculée</label><input type="text" id="e-days-${t.id}" value="${esc(t.days||'')} " readonly style="background:var(--bg4);color:var(--text2);cursor:default;" placeholder="Calculée automatiquement depuis les dates"/></div>
         <div class="efield full"><label>Domaine d'application</label><input type="text" id="e-domain-${t.id}" value="${esc(t.domain||'')}" placeholder="Ex : Automotive, BESS, Marine, Industrie…"/></div>
         <div class="efield full"><label>Responsable du test</label><input type="text" id="e-owner-${t.id}" value="${esc(t.owner||'')}" placeholder="Ex : Vincent Jacob…"/></div>
+        <div class="efield full">
+          <label>Membres de l'équipe supplémentaires</label>
+          <div class="team-add-row">
+            <input type="text" id="e-team-inp-${t.id}" placeholder="Ajouter un membre…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember('e-${t.id}');}"/>
+            <button class="btn sm" onclick="addTeamMember('e-${t.id}')"><i class="ti ti-plus"></i></button>
+          </div>
+          <div class="team-list" id="e-team-list-${t.id}">${(t.team||[]).map((m,i)=>'<div class="team-member-row"><i class="ti ti-user" style="font-size:13px;color:var(--accent);flex-shrink:0;"></i><span>'+esc(m)+'</span><button onclick="removeTeamMember(&#39;e-${t.id}&#39;,'+i+')"><i class="ti ti-x"></i></button></div>').join('')}</div>
+        </div>
+        <div class="efield full">
+          <label>Sample</label>
+          <div class="sample-btns">
+            <button type="button" class="sample-btn${t.sample==='A'?' selected':''}" id="e-sample-A-${t.id}" onclick="selectSample('e-${t.id}','A')">Sample A</button>
+            <button type="button" class="sample-btn${t.sample==='B'?' selected':''}" id="e-sample-B-${t.id}" onclick="selectSample('e-${t.id}','B')">Sample B</button>
+            <button type="button" class="sample-btn${t.sample==='C'?' selected':''}" id="e-sample-C-${t.id}" onclick="selectSample('e-${t.id}','C')">Sample C</button>
+          </div>
+        </div>
         <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
           <label>Classe d'échec</label>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
@@ -1805,6 +2009,11 @@ function renderEditForm(t, delivs){
 function startEdit(id){
   const t=tests.find(x=>x.id===id);if(!t)return;
   editingCards[id]={deliverables:[...(t.deliverables||[])]};
+  // Init team + sample pour l'édition
+  if(!window._teamMembers) window._teamMembers={};
+  window._teamMembers['e-'+id]=[...(t.team||[])];
+  if(!window._sampleSel) window._sampleSel={};
+  window._sampleSel['e-'+id]=t.sample||'';
   render();
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
@@ -1841,7 +2050,7 @@ function saveEdit(id){
   const snapshot = {
     name:t.name, type:t.type, status:t.status,
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
-    domain:t.domain, owner:t.owner, failClass:t.failClass,
+    domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
     material:t.material, description:t.description
   };
   t.name=name;
@@ -1852,6 +2061,8 @@ function saveEdit(id){
   t.days=calcDaysValue(t.dateStart, t.dateEnd);
   t.domain=(document.getElementById('e-domain-'+id)?.value||'').trim();
   t.owner=(document.getElementById('e-owner-'+id)?.value||'').trim();
+  t.team=[...(window._teamMembers?.['e-'+id]||t.team||[])];
+  t.sample=window._sampleSel?.['e-'+id]||t.sample||'';
   const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
   t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
   t.material=(document.getElementById('e-material-'+id)?.value||'').trim();
@@ -2015,6 +2226,12 @@ function openModal(){
   ['f-name','f-type','f-date','f-dateend','f-domain','f-owner','f-material','f-desc'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
+  if(!window._teamMembers) window._teamMembers={};
+  window._teamMembers['f']=[];
+  const ftl=document.getElementById('f-team-list'); if(ftl) ftl.innerHTML='';
+  if(!window._sampleSel) window._sampleSel={};
+  window._sampleSel['f']='';
+  ['f-sample-A','f-sample-B','f-sample-C'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('selected');});
   const daysEl=document.getElementById('f-days'); if(daysEl) daysEl.value='';
   if(!window._failClassSel) window._failClassSel={};
   window._failClassSel['f']='';
@@ -2064,6 +2281,8 @@ function saveNew(){
     days:calcDaysValue(document.getElementById('f-date').value, document.getElementById('f-dateend').value),
     domain:(document.getElementById('f-domain').value||'').trim(),
     owner:(document.getElementById('f-owner').value||'').trim(),
+    team:[...(window._teamMembers?.f||[])],
+    sample:window._sampleSel?.f||'',
     failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),
     description:document.getElementById('f-desc').value.trim(),
@@ -2778,8 +2997,8 @@ async function exportExcel(){
   }
 
   const rows = [[
-    'N°','Nom du test','Responsable','Type','Statut','Classe échec',
-    'Domaine','Date début','Date fin','Durée (j)',
+    'N°','Nom du test','Responsable','Équipe','Type','Statut','Classe échec',
+    'Domaine','Sample','Date début','Date fin','Durée (j)',
     'Matériel / équipement','Description / protocole',
     'Livrables','R&D','Certifications',
     'Docs de référence','Comptes rendus & livrables',
@@ -2800,10 +3019,14 @@ async function exportExcel(){
       i+1,
       t.name||'',
       t.owner||'',
+      (t.team||[]).join(' | '),
       t.type||'',
       STATUS[t.status]||'',
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'',
+      t.sample||'',
+      t.owner||'',
+      (t.team||[]).join(' | '),
       t.dateStart||'',
       t.dateEnd||'',
       t.days||'',
@@ -2982,10 +3205,12 @@ async function exportPDF(){
 
     // Ligne méta
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+    const allPeople=[t.owner,...(t.team||[])].filter(Boolean);
     const meta=[
       t.type||null,
-      t.owner?'Responsable : '+t.owner:null,
+      allPeople.length?'Équipe : '+allPeople.join(', '):null,
       t.domain?'Domaine : '+t.domain:null,
+      t.sample?'Sample '+t.sample:null,
       t.days?t.days+' jour(s)':null,
       t.dateStart?'Début : '+t.dateStart:null,
       t.dateEnd?'Fin : '+t.dateEnd:null,
@@ -3056,7 +3281,7 @@ async function exportPDF(){
 document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
 document.getElementById('cert-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cert-overlay'))closeCertModal();});
 document.getElementById('equip-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('equip-overlay'))closeEquipModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeEquipModal();closeCalendar();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCertModal();closeDayPanel();closeEquipModal();closeCalendar();}});
 document.getElementById('cal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('cal-overlay'))closeCalendar();});
 
 // Attend que la lib MSAL soit chargée (scripts defer) avant d'initialiser

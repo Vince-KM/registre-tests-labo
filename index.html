@@ -27056,5 +27056,22 @@ function waitForMsal(attempts){
 }
 window.addEventListener('load', ()=>{ waitForMsal(50); });
 </script>
+
+<!-- ── Bouton retour en haut ── -->
+<button id="btn-scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Retour en haut" aria-label="Retour en haut" style="position:fixed;bottom:28px;right:28px;width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(107,110,232,.45);opacity:0;transform:translateY(12px);transition:opacity .22s ease,transform .22s ease,background .15s;z-index:890;pointer-events:none;"><i class="ti ti-arrow-up" style="font-size:18px;"></i></button>
+
+<script>
+(function(){
+  const btn = document.getElementById('btn-scroll-top');
+  window.addEventListener('scroll', function(){
+    const show = window.scrollY > 320;
+    btn.style.opacity = show ? '1' : '0';
+    btn.style.transform = show ? 'translateY(0)' : 'translateY(12px)';
+    btn.style.pointerEvents = show ? 'auto' : 'none';
+  }, {passive:true});
+  btn.addEventListener('mouseenter', function(){ btn.style.background='#5355c8'; });
+  btn.addEventListener('mouseleave', function(){ btn.style.background='var(--accent)'; });
+})();
+</script>
 </body>
 </html>

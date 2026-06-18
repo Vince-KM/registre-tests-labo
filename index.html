@@ -23731,9 +23731,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           </div>
         </div>
         <div class="field full">
-          <label>Matériel / équipement requis</label>
-          <div class="equip-chips-wrap" id="f-equip-chips"></div>
-          <textarea id="f-material" placeholder="Ex : Oscilloscope Tektronix MSO6, charge électronique 600V/100A… ou sélectionnez ci-dessus" style="margin-top:6px;"></textarea>
+          <label>Notes matériel / équipement</label>
+          <textarea id="f-material" placeholder="Notes libres sur le matériel, instruments de mesure…"></textarea>
         </div>
         <div class="field full"><label>Description / protocole</label><textarea id="f-desc" placeholder="Conditions de test, séquence, points de mesure, critères de réussite…"></textarea></div>
       </div>
@@ -24373,15 +24372,18 @@ async function refreshAllAttCounts(){
       }
 
       // ── Mise à jour des compteurs de pièces jointes ──
-      // Lit Rapports/ et Reference/ séparément (pas la racine qui contient les sous-dossiers)
+      // Lit Rapports/, Reference/ et Schemas/ séparément (pas la racine qui contient les sous-dossiers)
       const reportItems = await listSpFolder(t.name, null, 'reports');
       const refItems    = await listSpFolder(t.name, null, 'ref');
+      const schemaItems = await listSpFolder(t.name, null, 'schemas');
       if(reportItems !== null && _attCache[t.id]) _attCache[t.id] = { items: reportItems, ts: Date.now() };
       else if(reportItems !== null) _attCache[t.id] = { items: reportItems, ts: Date.now() };
       if(refItems !== null && _refCache[t.id]) _refCache[t.id] = { items: refItems, ts: Date.now() };
       else if(refItems !== null) _refCache[t.id] = { items: refItems, ts: Date.now() };
+      if(schemaItems !== null && _schemaCache[t.id]) _schemaCache[t.id] = { items: schemaItems, ts: Date.now() };
+      else if(schemaItems !== null) _schemaCache[t.id] = { items: schemaItems, ts: Date.now() };
       const localCount = (t.attachments||[]).filter(a=>a.data).length;
-      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + localCount;
+      const total = (reportItems ? reportItems.length : 0) + (refItems ? refItems.length : 0) + (schemaItems ? schemaItems.length : 0) + localCount;
       const prev = _attCount[t.id];
       _attCount[t.id] = total;
       if(prev !== total){
@@ -25199,11 +25201,7 @@ function renderEditForm(t, delivs){
             <button type="button" class="fail-class-btn${t.failClass==='C'?' selected-c':''}" id="e-fc-c-${t.id}" onclick="selectFailClass('e-${t.id}','C')">C — Critique</button>
           </div>
         </div>
-        <div class="efield full">
-          <label>Matériel / équipement requis</label>
-          <div class="equip-chips-wrap" id="e-equip-chips-${t.id}"></div>
-          <textarea id="e-material-${t.id}" placeholder="Équipements, instruments de mesure… ou sélectionnez ci-dessus" style="margin-top:6px;">${esc(t.material||'')}</textarea>
-        </div>
+        <div class="efield full"><label>Notes matériel / équipement</label><textarea id="e-material-${t.id}" placeholder="Notes libres sur le matériel, instruments de mesure…" style="margin-bottom:6px;">${esc(t.material||'')}</textarea></div>
         <div class="efield full"><label>Description / protocole</label><textarea id="e-desc-${t.id}" placeholder="Conditions, séquence, critères…">${esc(t.description||'')}</textarea></div>
       </div>
       <div class="edit-sep"></div>
@@ -25855,6 +25853,7 @@ async function refreshSchemaList(testId, forceRefresh){
   }
   if(items===null){ if(!cached){ const elN=document.getElementById('schemalist-'+testId); if(elN) elN.innerHTML='<div style="font-size:12px;color:var(--warning);padding:6px 4px;">Impossible de lire le dossier Schemas.</div>'; } else document.getElementById('schema-hint-'+testId)?.remove(); return; }
   _schemaCache[testId]={items,ts:Date.now()};
+  _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]);
   const elNow=document.getElementById('schemalist-'+testId);
   if(elNow) elNow.innerHTML=renderSpItems(items,testId,'schemas');
 }
@@ -25934,6 +25933,7 @@ async function refreshRefList(testId, forceRefresh){
 
   // Met à jour le cache
   _refCache[testId]={ items, ts:Date.now() };
+  _attCount[testId]=calcAttCount(testId,t); updateAttChip(testId,_attCount[testId]);
 
   // Réaffiche seulement si l'élément est toujours dans le DOM (carte encore ouverte)
   const elNow=document.getElementById('reflist-'+testId);

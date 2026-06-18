@@ -23215,10 +23215,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* MODE APERÇU GLOBAL */
 .preview-panel{display:none;border-top:1px solid var(--border);background:var(--bg3);padding:12px 18px;gap:10px;}
-.preview-panel.open{display:grid;grid-template-columns:1fr 1fr;}
+.preview-panel.open{display:grid;grid-template-columns:1fr 1fr 1fr;}
 .preview-panel .pv-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;}
+.preview-panel .pv-block.pv-wide{grid-column:1/-1;}
+.preview-panel .pv-block.pv-half{grid-column:span 2;}
 .preview-panel .pv-label{font-size:10px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
-.preview-panel .pv-text{font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;max-height:100px;overflow:hidden;mask-image:linear-gradient(to bottom,#000 65%,transparent 100%);}
+.preview-panel .pv-text{font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;max-height:80px;overflow:hidden;mask-image:linear-gradient(to bottom,#000 60%,transparent 100%);}
+.preview-panel .pv-chips{display:flex;flex-wrap:wrap;gap:4px;}
+.preview-panel .pv-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid rgba(107,110,232,.2);background:rgba(107,110,232,.08);color:var(--accent);}
+.preview-panel .pv-chip.pv-chip-card{border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08);color:var(--purple);}
+.preview-panel .pv-chip.pv-chip-deliv{border-color:rgba(34,211,160,.2);background:rgba(34,211,160,.07);color:var(--success);}
+.preview-panel .pv-chip.pv-chip-link{border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.07);color:#d97706;}
 .btn-preview-mode{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);border-radius:var(--radius);cursor:pointer;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;transition:all .18s;white-space:nowrap;backdrop-filter:blur(4px);}
 .btn-preview-mode:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);}
 .btn-preview-mode.active{background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.6);color:#e0d5ff;}
@@ -25042,9 +25049,14 @@ function render(){
         </div>
         <i class="ti ti-chevron-down chevron"></i>
       </div>
-      <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description))?' open':''}" id="preview-${t.id}">
-        ${t.material?`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool"></i> Matériel / équipement</div><div class="pv-text">${esc(t.material)}</div></div>`:''}
-        ${t.description?`<div class="pv-block"><div class="pv-label"><i class="ti ti-file-description"></i> Protocole / conditions</div><div class="pv-text">${esc(t.description)}</div></div>`:''}
+      <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length)))?' open':''}" id="preview-${t.id}">
+        ${(t.equipIds&&t.equipIds.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool" style="color:var(--accent);"></i> Équipements</div><div class="pv-chips">${equipments.filter(e=>(t.equipIds||[]).includes(e.id)).map(e=>`<span class="pv-chip"><i class="ti ti-tool" style="font-size:10px;"></i> ${esc(e.type+(e.model?' '+e.model:''))}</span>`).join('')}</div></div>`:''}
+        ${(t.cardIds&&t.cardIds.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-cpu" style="color:var(--purple);"></i> Cartes élec.</div><div class="pv-chips">${cards.filter(c=>(t.cardIds||[]).includes(c.id)).map(c=>`<span class="pv-chip pv-chip-card"><i class="ti ti-cpu" style="font-size:10px;"></i> ${esc(c.name+(c.version?' '+c.version:''))}</span>`).join('')}</div></div>`:''}
+        ${(t.sample||(t.team&&t.team.length))?`<div class="pv-block"><div class="pv-label"><i class="ti ti-users" style="color:var(--text2);"></i> Équipe & sample</div><div class="pv-chips">${t.sample?`<span class="pv-chip" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);"><i class="ti ti-flask" style="font-size:10px;"></i> Sample ${esc(t.sample)}</span>`:''} ${(t.team||[]).map(m=>`<span class="pv-chip" style="background:rgba(107,110,232,.06);color:var(--text2);"><i class="ti ti-user" style="font-size:10px;"></i> ${esc(m)}</span>`).join('')}</div></div>`:''}
+        ${(t.deliverables&&t.deliverables.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-checklist" style="color:var(--success);"></i> Livrables (${t.deliverables.length})</div><div class="pv-chips">${t.deliverables.map(d=>`<span class="pv-chip pv-chip-deliv"><i class="ti ti-circle-dot" style="font-size:10px;"></i> ${esc(d)}</span>`).join('')}</div></div>`:''}
+        ${(t.links&&t.links.filter(l=>tests.find(x=>x.id===l.testId)).length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-link" style="color:#d97706;"></i> Liens</div><div class="pv-chips">${t.links.filter(l=>tests.find(x=>x.id===l.testId)).map(l=>{const lk=tests.find(x=>x.id===l.testId);return lk?`<span class="pv-chip pv-chip-link">${l.type==='depends'?'↳ Dépend de':l.type==='blocks'?'↑ Bloque':'↔ Lié à'} ${esc(lk.name)}</span>`:''}).join('')}</div></div>`:''}
+        ${t.description?`<div class="pv-block pv-half"><div class="pv-label"><i class="ti ti-file-description"></i> Protocole / conditions</div><div class="pv-text">${esc(t.description)}</div></div>`:''}
+        ${t.material?`<div class="pv-block"><div class="pv-label"><i class="ti ti-notes"></i> Notes matériel</div><div class="pv-text">${esc(t.material)}</div></div>`:''}
       </div>
       <div class="card-body${isOpen?' open':''}" id="body-${t.id}">
         ${isEditing ? renderEditForm(t, edDelivs) : renderViewBody(t)}
@@ -25439,7 +25451,7 @@ function toggle(id){
     // Réaffiche le panneau d'aperçu si le mode est actif
     const prev=document.getElementById('preview-'+id);
     const t=tests.find(x=>x.id===id);
-    if(prev && _previewMode && t && (t.material||t.description)){
+    if(prev && _previewMode && t && (t.material||t.description||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length))){
       prev.classList.add('open');
     }
   }
@@ -26332,14 +26344,15 @@ async function exportExcel(){
   const rows = [[
     'N°','Nom du test','Responsable','Équipe','Type','Statut','Classe échec',
     'Domaine','Sample','Date début','Date fin','Durée (j)',
-    'Matériel / équipement','Description / protocole',
-    'Livrables','R&D','Certifications','Cartes électroniques',
+    'Équipements utilisés','Cartes électroniques','Notes matériel','Description / protocole',
+    'Livrables','R&D','Certifications',
     'Docs de référence','Schémas électriques','Comptes rendus & livrables',
     'Liens entre tests'
   ]];
 
   tests.forEach(function(t,i){
     var certs      = certifications.filter(function(c){return (t.certIds||[]).includes(c.id);}).map(function(c){return c.name;}).join(' | ');
+    var equipNames = equipments.filter(function(e){return (t.equipIds||[]).includes(e.id);}).map(function(e){return e.type+(e.model?' '+e.model:'');}).join(' | ');
     var cardNames  = cards.filter(function(c){return (t.cardIds||[]).includes(c.id);}).map(function(c){return c.name+(c.version?' '+c.version:'');}).join(' | ');
     var refFiles   = _refCache[t.id]    ? _refCache[t.id].items.map(function(f){return f.name;}).join(' | ')    : '';
     var schFiles   = _schemaCache[t.id] ? _schemaCache[t.id].items.map(function(f){return f.name;}).join(' | ') : '';
@@ -26363,12 +26376,13 @@ async function exportExcel(){
       t.dateStart||'',
       t.dateEnd||'',
       t.days||'',
+      equipNames,
+      cardNames,
       t.material||'',
       t.description||'',
       (t.deliverables||[]).join(' | '),
       t.isRnD?'Oui':'',
       certs,
-      cardNames,
       refFiles,
       schFiles,
       rptFiles,
@@ -26554,14 +26568,23 @@ async function exportPDF(){
     ].filter(Boolean).join('   ·   ');
     if(meta){const ls=doc.splitTextToSize(meta,CW-8);doc.text(ls,M+4,y);y+=ls.length*5;}
 
+    // Équipements utilisés (depuis equipIds)
+    const linkedEquipPDF=equipments.filter(e=>(t.equipIds||[]).includes(e.id));
+    if(linkedEquipPDF.length){
+      chk(8);
+      bold('Équipements utilisés :',M+4,y,[60,60,60]);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
+      const lse=doc.splitTextToSize(linkedEquipPDF.map(e=>e.type+(e.model?' '+e.model:'')).join(' | '),CW-44);
+      doc.text(lse,M+44,y);y+=lse.length*4.5+1;
+    }
     // Cartes électroniques
     const linkedCards=cards.filter(c=>(t.cardIds||[]).includes(c.id));
     if(linkedCards.length){
       chk(8);
       bold('Cartes électroniques :',M+4,y,[60,60,60]);
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
-      const lsc=doc.splitTextToSize(linkedCards.map(c=>c.name+(c.version?' '+c.version:'')).join(', '),CW-38);
-      doc.text(lsc,M+38,y);y+=lsc.length*4.5+1;
+      const lsc=doc.splitTextToSize(linkedCards.map(c=>c.name+(c.version?' '+c.version:'')).join(' | '),CW-46);
+      doc.text(lsc,M+46,y);y+=lsc.length*4.5+1;
     }
     // Appartenance
     const linkedCerts=certifications.filter(c=>(t.certIds||[]).includes(c.id));
@@ -26570,12 +26593,12 @@ async function exportPDF(){
       const parts=(t.isRnD?['R&D Interne']:[]).concat(linkedCerts.map(c=>c.name));
       bold('Appartenance :',M+4,y,[60,60,60]);
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(80,80,80);
-      const ls=doc.splitTextToSize(parts.join(', '),CW-38);
+      const ls=doc.splitTextToSize(parts.join(', '),CW-32);
       doc.text(ls,M+32,y);y+=ls.length*4.5+1;
     }
 
     // Champs texte
-    block('Matériel / équipement',t.material);
+    if(t.material) block('Notes matériel',t.material);
     block('Protocole / description',t.description);
 
     // Livrables
@@ -26678,10 +26701,7 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
 
   const linkedCerts = certificationsList.filter(c => (t.certIds||[]).includes(c.id));
   const linkedCards = cardsList.filter(c => (t.cardIds||[]).includes(c.id));
-  const linkedEquip = equipmentsList.filter(eq => t.material && (
-    (t.material.toLowerCase().includes((eq.type||'').toLowerCase()) && eq.type.length > 3) ||
-    (t.material.toLowerCase().includes((eq.model||'').toLowerCase()) && eq.model.length > 3)
-  ));
+  const linkedEquip = equipmentsList.filter(eq => (t.equipIds||[]).includes(eq.id));
 
   return new Document({
     numbering: {
@@ -26772,7 +26792,12 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
             ...(t.days?[new TableRow({children:[cell("Durée prévue",{width:col1,shade:"F0EFFE",bold:true}),cell(t.days+" jour(s)",{width:col2})]})]: []),
             ...(allPeople[0]?[new TableRow({children:[cell("Préparé par",{width:col1,shade:"F0EFFE",bold:true}),cell(allPeople[0],{width:col2})]})]: []),
             ...(allPeople.length>1?[new TableRow({children:[cell("Réalisé par",{width:col1,shade:"F0EFFE",bold:true}),cell(allPeople.join(", "),{width:col2})]})]: []),
+            ...(linkedEquip.length?[new TableRow({children:[cell("Équipements",{width:col1,shade:"F0EFFE",bold:true}),cell(linkedEquip.map(e=>e.type+(e.model?' '+e.model:'')).join(", "),{width:col2})]})]: []),
+            ...(linkedCards.length?[new TableRow({children:[cell("Cartes élec.",{width:col1,shade:"F0EFFE",bold:true}),cell(linkedCards.map(c=>c.name+(c.version?' '+c.version:'')).join(", "),{width:col2})]})]: []),
             ...(linkedCerts.length?[new TableRow({children:[cell("Certifications",{width:col1,shade:"F0EFFE",bold:true}),cell(linkedCerts.map(c=>c.name).join(", "),{width:col2})]})]: []),
+            ...(t.domain?[new TableRow({children:[cell("Domaine",{width:col1,shade:"F0EFFE",bold:true}),cell(t.domain,{width:col2})]})]: []),
+            ...(t.isRnD?[new TableRow({children:[cell("Classification",{width:col1,shade:"F0EFFE",bold:true}),cell("Test interne R&D",{width:col2})]})]: []),
+            ...(t.status==='fail'&&t.failClass?[new TableRow({children:[cell("Classe échec",{width:col1,shade:"F0EFFE",bold:true}),cell("Classe "+t.failClass+" — "+(t.failClass==='A'?'Mineure':t.failClass==='B'?'Majeure':'Critique'),{width:col2,color:t.failClass==='A'?'D97706':t.failClass==='B'?'EA580C':'E11D48'})]})]: []),
             new TableRow({children:[cell("Version",{width:col1,shade:"F0EFFE",bold:true}),cell("1.0",{width:col2})]}),
             new TableRow({children:[cell("Date",{width:col1,shade:"F0EFFE",bold:true}),cell(new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}),{width:col2})]}),
           ]
@@ -26899,8 +26924,33 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
         pEmpty(),
 
         // ── 2.6 FICHIERS ──
-        h("2.6  Fichiers", HeadingLevel.HEADING_2),
-        p("[Lister ici les fichiers de mesure associés à ce test]", { italics: true, color: "888888" }),
+        h("2.6  Fichiers associés", HeadingLevel.HEADING_2),
+        ...(() => {
+          const refF = _refCache[t.id]?_refCache[t.id].items:[];
+          const schF = _schemaCache[t.id]?_schemaCache[t.id].items:[];
+          const rptF = _attCache[t.id]?_attCache[t.id].items:[];
+          const rows2 = [];
+          if(refF.length){
+            rows2.push(h("2.6.1  Documents de référence", HeadingLevel.HEADING_3));
+            refF.forEach(f=>rows2.push(bullet(f.name+(f.size?' ('+Math.round(f.size/1024)+' ko)':''))));
+            rows2.push(pEmpty());
+          }
+          if(schF.length){
+            rows2.push(h("2.6."+(refF.length?"2":"1")+"  Schémas électriques", HeadingLevel.HEADING_3));
+            schF.forEach(f=>rows2.push(bullet(f.name+(f.size?' ('+Math.round(f.size/1024)+' ko)':''))));
+            rows2.push(pEmpty());
+          }
+          if(rptF.length){
+            const idx = (refF.length?1:0)+(schF.length?1:0)+1;
+            rows2.push(h("2.6."+idx+"  Comptes rendus & livrables", HeadingLevel.HEADING_3));
+            rptF.forEach(f=>rows2.push(bullet(f.name+(f.size?' ('+Math.round(f.size/1024)+' ko)':''))));
+            rows2.push(pEmpty());
+          }
+          if(!refF.length&&!schF.length&&!rptF.length){
+            rows2.push(p("[Lister ici les fichiers de mesure associés à ce test]", { italics: true, color: "888888" }));
+          }
+          return rows2;
+        })(),
       ]
     }]
   });

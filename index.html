@@ -23527,6 +23527,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .sample-btn:hover{border-color:var(--accent);color:var(--accent);}
 .sample-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
 .chip-sample{background:rgba(167,139,250,.15);color:var(--purple);border:1px solid rgba(167,139,250,.25);}
+.chip-voltage{background:rgba(245,158,11,.12);color:#b45309;border:1px solid rgba(245,158,11,.3);}
 
 /* ── ÉQUIPE ── */
 .team-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
@@ -23729,6 +23730,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
             <button type="button" class="sample-btn" id="f-sample-A" onclick="selectSample('f','A')">Sample A</button>
             <button type="button" class="sample-btn" id="f-sample-B" onclick="selectSample('f','B')">Sample B</button>
             <button type="button" class="sample-btn" id="f-sample-C" onclick="selectSample('f','C')">Sample C</button>
+          </div>
+        </div>
+        <div class="field full">
+          <label>Version tension</label>
+          <div class="sample-btns">
+            <button type="button" class="sample-btn" id="f-voltage-48V" onclick="selectVoltage('f','48V')">48V</button>
+            <button type="button" class="sample-btn" id="f-voltage-96_400V" onclick="selectVoltage('f','96-400V')">96-400V</button>
+            <button type="button" class="sample-btn" id="f-voltage-800V" onclick="selectVoltage('f','800V')">800V</button>
+            <button type="button" class="sample-btn" id="f-voltage-1500V" onclick="selectVoltage('f','1500V')">1500V</button>
           </div>
         </div>
         <div class="field full" id="f-failclass-row" style="display:none;">
@@ -24513,6 +24523,20 @@ function selectSample(prefix, val){
   });
 }
 
+/* ══ VOLTAGE ══ */
+const VOLTAGE_OPTS = ['48V','96-400V','800V','1500V'];
+function selectVoltage(prefix, val){
+  if(!window._voltageSel) window._voltageSel={};
+  window._voltageSel[prefix] = window._voltageSel[prefix]===val ? '' : val;
+  const cur = window._voltageSel[prefix];
+  VOLTAGE_OPTS.forEach(v=>{
+    const key = v.replace(/[^a-zA-Z0-9]/g,'_');
+    const id = prefix==='f' ? 'f-voltage-'+key : 'e-voltage-'+key+'-'+prefix.slice(2);
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('selected', cur===v);
+  });
+}
+
 /* ══ ÉQUIPE ══ */
 function addTeamMember(prefix){
   const inpId = prefix==='f' ? 'f-team-inp' : 'e-team-inp-'+prefix.slice(2);
@@ -25041,6 +25065,7 @@ function render(){
           ${t.owner?`<span class="chip" style="background:rgba(107,110,232,.1);color:var(--accent);"><i class="ti ti-user" style="font-size:11px;"></i> ${esc(t.owner)}</span>`:''}
           ${(t.team||[]).map(m=>`<span class="chip" style="background:rgba(107,110,232,.07);color:var(--text2);"><i class="ti ti-user" style="font-size:11px;"></i> ${esc(m)}</span>`).join('')}
           ${t.sample?`<span class="chip chip-sample"><i class="ti ti-flask" style="font-size:11px;"></i> Sample ${esc(t.sample)}</span>`:''}
+          ${t.voltage?`<span class="chip chip-voltage"><i class="ti ti-bolt" style="font-size:11px;"></i> ${esc(t.voltage)}</span>`:''}
           ${detectConflicts(t).length?'<span class="chip chip-conflict"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Conflit</span>':''}
           ${t.isRnD?`<span class="chip chip-rnd"><i class="ti ti-microscope" style="font-size:11px;"></i> R&D</span>`:''}
           ${t.status==='fail'&&t.failClass?`<span class="chip chip-fail-${t.failClass.toLowerCase()}"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> Cl. ${esc(t.failClass)}</span>`:''}
@@ -25054,11 +25079,11 @@ function render(){
           ${isEditing?`<span class="chip" style="background:rgba(34,211,160,.15);color:var(--success);"><i class="ti ti-pencil" style="font-size:11px;"></i> Édition</span>`:''}
         </div>
       </div>
-      <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length)))?' open':''}" id="preview-${t.id}">
+      <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description||t.voltage||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length)))?' open':''}" id="preview-${t.id}">
         ${(()=>{ const _pvChips=[];
           if(t.equipIds&&t.equipIds.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool" style="color:var(--accent);"></i> Équipements</div><div class="pv-chips">${equipments.filter(e=>(t.equipIds||[]).includes(e.id)).map(e=>`<span class="pv-chip"><i class="ti ti-tool" style="font-size:10px;"></i> ${esc(e.type+(e.model?' '+e.model:''))}</span>`).join('')}</div></div>`);
           if(t.cardIds&&t.cardIds.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-cpu" style="color:var(--purple);"></i> Cartes élec.</div><div class="pv-chips">${cards.filter(c=>(t.cardIds||[]).includes(c.id)).map(c=>`<span class="pv-chip pv-chip-card"><i class="ti ti-cpu" style="font-size:10px;"></i> ${esc(c.name+(c.version?' '+c.version:''))}</span>`).join('')}</div></div>`);
-          if(t.sample||(t.team&&t.team.length)) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-users" style="color:var(--text2);"></i> Équipe & sample</div><div class="pv-chips">${t.sample?`<span class="pv-chip" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);"><i class="ti ti-flask" style="font-size:10px;"></i> Sample ${esc(t.sample)}</span>`:''} ${(t.team||[]).map(m=>`<span class="pv-chip" style="background:rgba(107,110,232,.06);color:var(--text2);"><i class="ti ti-user" style="font-size:10px;"></i> ${esc(m)}</span>`).join('')}</div></div>`);
+          if(t.sample||(t.team&&t.team.length)||t.voltage) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-users" style="color:var(--text2);"></i> Équipe & sample</div><div class="pv-chips">${t.sample?`<span class="pv-chip" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);"><i class="ti ti-flask" style="font-size:10px;"></i> Sample ${esc(t.sample)}</span>`:''} ${t.voltage?`<span class="pv-chip" style="background:rgba(245,158,11,.1);color:#b45309;border-color:rgba(245,158,11,.3);"><i class="ti ti-bolt" style="font-size:10px;"></i> ${esc(t.voltage)}</span>`:''} ${(t.team||[]).map(m=>`<span class="pv-chip" style="background:rgba(107,110,232,.06);color:var(--text2);"><i class="ti ti-user" style="font-size:10px;"></i> ${esc(m)}</span>`).join('')}</div></div>`);
           if(t.deliverables&&t.deliverables.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-checklist" style="color:var(--success);"></i> Livrables (${t.deliverables.length})</div><div class="pv-chips">${t.deliverables.map(d=>`<span class="pv-chip pv-chip-deliv"><i class="ti ti-circle-dot" style="font-size:10px;"></i> ${esc(d)}</span>`).join('')}</div></div>`);
           if(t.links&&t.links.filter(l=>tests.find(x=>x.id===l.testId)).length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-link" style="color:#d97706;"></i> Liens</div><div class="pv-chips">${t.links.filter(l=>tests.find(x=>x.id===l.testId)).map(l=>{const lk=tests.find(x=>x.id===l.testId);return lk?`<span class="pv-chip pv-chip-link">${l.type==='depends'?'↳ Dépend de':l.type==='blocks'?'↑ Bloque':'↔ Lié à'} ${esc(lk.name)}</span>`:''}).join('')}</div></div>`);
           const _pvText=[];
@@ -25102,9 +25127,10 @@ function renderViewBody(t){
         <div class="info-block"><div class="info-block-label">Date de début</div><div class="info-block-val">${t.dateStart||'—'}</div></div>
         <div class="info-block"><div class="info-block-label">Date de fin</div><div class="info-block-val">${t.dateEnd||'—'}</div></div>
       </div>
-      ${(t.owner||(t.team&&t.team.length)||t.sample)?`<div class="info-row" style="grid-template-columns:${[t.owner,t.sample,(t.team&&t.team.length)].filter(Boolean).length > 1 ? 'repeat('+[t.owner,t.sample,(t.team&&t.team.length)].filter(Boolean).length+',1fr)' : '1fr'};">
+      ${(t.owner||(t.team&&t.team.length)||t.sample||t.voltage)?`<div class="info-row" style="grid-template-columns:${[t.owner,t.sample,t.voltage,(t.team&&t.team.length)].filter(Boolean).length > 1 ? 'repeat('+[t.owner,t.sample,t.voltage,(t.team&&t.team.length)].filter(Boolean).length+',1fr)' : '1fr'};">
         ${t.owner?`<div class="info-block"><div class="info-block-label"><i class="ti ti-user" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Responsable</div><div class="info-block-val">${esc(t.owner)}</div></div>`:''}
         ${t.sample?`<div class="info-block"><div class="info-block-label"><i class="ti ti-flask" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Sample</div><div class="info-block-val" style="color:var(--purple);font-weight:700;">Sample ${esc(t.sample)}</div></div>`:''}
+        ${t.voltage?`<div class="info-block"><div class="info-block-label"><i class="ti ti-bolt" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Version tension</div><div class="info-block-val" style="color:#b45309;font-weight:700;">${esc(t.voltage)}</div></div>`:''}
         ${(t.team&&t.team.length)?`<div class="info-block"><div class="info-block-label"><i class="ti ti-users" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Équipe</div><div class="info-block-val">${t.team.map(m=>esc(m)).join(', ')}</div></div>`:''}
       </div>`:''}
       ${detectConflicts(t).length?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#d97706;"><i class="ti ti-alert-triangle" style="vertical-align:-2px;margin-right:6px;"></i><strong>Conflits détectés :</strong> ${detectConflicts(t).map(c=>'<span style="font-weight:600;">'+esc(c.name)+'</span> ('+esc(c.equipment)+')').join(', ')}</div>`:''} 
@@ -25213,6 +25239,15 @@ function renderEditForm(t, delivs){
             <button type="button" class="sample-btn${t.sample==='C'?' selected':''}" id="e-sample-C-${t.id}" onclick="selectSample('e-${t.id}','C')">Sample C</button>
           </div>
         </div>
+        <div class="efield full">
+          <label>Version tension</label>
+          <div class="sample-btns">
+            <button type="button" class="sample-btn${t.voltage==='48V'?' selected':''}" id="e-voltage-48V-${t.id}" onclick="selectVoltage('e-${t.id}','48V')">48V</button>
+            <button type="button" class="sample-btn${t.voltage==='96-400V'?' selected':''}" id="e-voltage-96_400V-${t.id}" onclick="selectVoltage('e-${t.id}','96-400V')">96-400V</button>
+            <button type="button" class="sample-btn${t.voltage==='800V'?' selected':''}" id="e-voltage-800V-${t.id}" onclick="selectVoltage('e-${t.id}','800V')">800V</button>
+            <button type="button" class="sample-btn${t.voltage==='1500V'?' selected':''}" id="e-voltage-1500V-${t.id}" onclick="selectVoltage('e-${t.id}','1500V')">1500V</button>
+          </div>
+        </div>
         <div class="efield full" id="e-failclass-row-${t.id}" style="display:${t.status==='fail'?'block':'none'};">
           <label>Classe d'échec</label>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Classe A — Mineure &nbsp;|&nbsp; Classe B — Majeure &nbsp;|&nbsp; Classe C — Critique</div>
@@ -25277,6 +25312,8 @@ function startEdit(id){
   window._teamMembers['e-'+id]=[...(t.team||[])];
   if(!window._sampleSel) window._sampleSel={};
   window._sampleSel['e-'+id]=t.sample||'';
+  if(!window._voltageSel) window._voltageSel={};
+  window._voltageSel['e-'+id]=t.voltage||'';
   render();
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
@@ -25313,7 +25350,7 @@ function saveEdit(id){
   const snapshot = {
     name:t.name, type:t.type, status:t.status,
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
-    domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
+    domain:t.domain, owner:t.owner, sample:t.sample||'', voltage:t.voltage||'', failClass:t.failClass,
     material:t.material, description:t.description,
     team:(t.team||[]).join(', '),
     equips:(t.equipIds||[]).map(id=>{const e=equipments.find(x=>x.id===id);return e?equipLabel(e):'';}).filter(Boolean).join(', '),
@@ -25329,6 +25366,7 @@ function saveEdit(id){
   t.owner=(document.getElementById('e-owner-'+id)?.value||'').trim();
   t.team=[...(window._teamMembers?.['e-'+id]||t.team||[])];
   t.sample=window._sampleSel?.['e-'+id]||t.sample||'';
+  t.voltage=window._voltageSel?.['e-'+id]||'';
   const eStatus=document.getElementById('e-status-'+id)?.value||'pending';
   t.failClass=eStatus==='fail'?(window._failClassSel?.['e-'+id]||t.failClass||''):'';
   t.material=(document.getElementById('e-material-'+id)?.value||'').trim();
@@ -25342,12 +25380,12 @@ function saveEdit(id){
   if(!t.history) t.history=[];
   if(!t.links) t.links=[];
   const editor = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
-  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',team:'Équipe',equips:'Équipements',cards:'Cartes électroniques',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
+  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',voltage:'Version tension',team:'Équipe',equips:'Équipements',cards:'Cartes électroniques',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
   const STATUS_LABELS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
   const newValues = {
     name:t.name, type:t.type, status:t.status,
     dateStart:t.dateStart, dateEnd:t.dateEnd, days:t.days,
-    domain:t.domain, owner:t.owner, sample:t.sample||'', failClass:t.failClass,
+    domain:t.domain, owner:t.owner, sample:t.sample||'', voltage:t.voltage||'', failClass:t.failClass,
     material:t.material, description:t.description,
     team:t.team.join(', '),
     equips:t.equipIds.map(id=>{const e=equipments.find(x=>x.id===id);return e?equipLabel(e):'';}).filter(Boolean).join(', '),
@@ -25460,7 +25498,7 @@ function toggle(id){
     // Réaffiche le panneau d'aperçu si le mode est actif
     const prev=document.getElementById('preview-'+id);
     const t=tests.find(x=>x.id===id);
-    if(prev && _previewMode && t && (t.material||t.description||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length))){
+    if(prev && _previewMode && t && (t.material||t.description||t.voltage||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length))){
       prev.classList.add('open');
     }
   }
@@ -25532,6 +25570,9 @@ function openModal(){
   if(!window._sampleSel) window._sampleSel={};
   window._sampleSel['f']='';
   ['f-sample-A','f-sample-B','f-sample-C'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('selected');});
+  if(!window._voltageSel) window._voltageSel={};
+  window._voltageSel['f']='';
+  ['f-voltage-48V','f-voltage-96_400V','f-voltage-800V','f-voltage-1500V'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('selected');});
   const daysEl=document.getElementById('f-days'); if(daysEl) daysEl.value='';
   if(!window._failClassSel) window._failClassSel={};
   window._failClassSel['f']='';
@@ -25585,6 +25626,7 @@ function saveNew(){
     owner:(document.getElementById('f-owner').value||'').trim(),
     team:[...(window._teamMembers?.f||[])],
     sample:window._sampleSel?.f||'',
+    voltage:window._voltageSel?.f||'',
     failClass:fStatus==='fail'?(window._failClassSel?.f||''):'',
     material:document.getElementById('f-material').value.trim(),
     description:document.getElementById('f-desc').value.trim(),
@@ -26352,7 +26394,7 @@ async function exportExcel(){
 
   const rows = [[
     'N°','Nom du test','Responsable','Équipe','Type','Statut','Classe échec',
-    'Domaine','Sample','Date début','Date fin','Durée (j)',
+    'Domaine','Sample','Version tension','Date début','Date fin','Durée (j)',
     'Équipements utilisés','Cartes électroniques','Notes matériel','Description / protocole',
     'Livrables','R&D','Certifications',
     'Docs de référence','Schémas électriques','Comptes rendus & livrables',
@@ -26382,6 +26424,7 @@ async function exportExcel(){
       (t.status==='fail'&&t.failClass)?'Classe '+t.failClass:'',
       t.domain||'',
       t.sample||'',
+      t.voltage||'',
       t.dateStart||'',
       t.dateEnd||'',
       t.days||'',
@@ -26570,6 +26613,7 @@ async function exportPDF(){
       allPeople.length?'Équipe : '+allPeople.join(', '):null,
       t.domain?'Domaine : '+t.domain:null,
       t.sample?'Sample '+t.sample:null,
+      t.voltage||null,
       t.days?t.days+' jour(s)':null,
       t.dateStart?'Début : '+t.dateStart:null,
       t.dateEnd?'Fin : '+t.dateEnd:null,
@@ -26796,6 +26840,7 @@ function buildDocument(t, equipmentsList, cardsList, certificationsList) {
             new TableRow({children:[cell("Statut",{width:col1,shade:"F0EFFE",bold:true}),cell(STATUS[t.status]||'',{width:col2})]}),
             ...(t.domain?[new TableRow({children:[cell("Domaine",{width:col1,shade:"F0EFFE",bold:true}),cell(t.domain,{width:col2})]})]: []),
             ...(t.sample?[new TableRow({children:[cell("Sample",{width:col1,shade:"F0EFFE",bold:true}),cell("Sample "+t.sample,{width:col2})]})]: []),
+            ...(t.voltage?[new TableRow({children:[cell("Version tension",{width:col1,shade:"F0EFFE",bold:true}),cell(t.voltage,{width:col2})]})]: []),
             ...(t.dateStart?[new TableRow({children:[cell("Date début",{width:col1,shade:"F0EFFE",bold:true}),cell(t.dateStart,{width:col2})]})]: []),
             ...(t.dateEnd?[new TableRow({children:[cell("Date fin prévue",{width:col1,shade:"F0EFFE",bold:true}),cell(t.dateEnd,{width:col2})]})]: []),
             ...(t.days?[new TableRow({children:[cell("Durée prévue",{width:col1,shade:"F0EFFE",bold:true}),cell(t.days+" jour(s)",{width:col2})]})]: []),

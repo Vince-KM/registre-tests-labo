@@ -23214,11 +23214,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .card-body-inner{padding:18px;}
 
 /* MODE APERÇU GLOBAL */
-.preview-panel{display:none;border-top:1px solid var(--border);background:var(--bg3);padding:12px 18px;gap:10px;}
-.preview-panel.open{display:grid;grid-template-columns:1fr 1fr 1fr;}
+.preview-panel{display:none;border-top:1px solid var(--border);background:var(--bg3);padding:12px 18px;gap:0;}
+.preview-panel.open{display:flex;flex-direction:column;gap:8px;}
+.preview-panel .pv-chips-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+.preview-panel .pv-text-row{display:grid;grid-template-columns:2fr 1fr;gap:8px;}
+.preview-panel .pv-text-row.pv-text-row-single{grid-template-columns:1fr;}
 .preview-panel .pv-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;}
-.preview-panel .pv-block.pv-wide{grid-column:1/-1;}
-.preview-panel .pv-block.pv-half{grid-column:span 2;}
 .preview-panel .pv-label{font-size:10px;font-weight:700;font-family:var(--title);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .preview-panel .pv-text{font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;max-height:80px;overflow:hidden;mask-image:linear-gradient(to bottom,#000 60%,transparent 100%);}
 .preview-panel .pv-chips{display:flex;flex-wrap:wrap;gap:4px;}
@@ -23229,7 +23230,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-preview-mode{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);border-radius:var(--radius);cursor:pointer;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;transition:all .18s;white-space:nowrap;backdrop-filter:blur(4px);}
 .btn-preview-mode:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);}
 .btn-preview-mode.active{background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.6);color:#e0d5ff;}
-@media(max-width:640px){.preview-panel.open{grid-template-columns:1fr;}}
+@media(max-width:640px){.preview-panel .pv-chips-row{grid-template-columns:1fr;}.preview-panel .pv-text-row{grid-template-columns:1fr;}}
 
 /* VIEW MODE */
 .info-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
@@ -25050,13 +25051,17 @@ function render(){
         <i class="ti ti-chevron-down chevron"></i>
       </div>
       <div class="preview-panel${(_previewMode && !isOpen && (t.material||t.description||(t.equipIds&&t.equipIds.length)||(t.cardIds&&t.cardIds.length)||(t.deliverables&&t.deliverables.length)||(t.links&&t.links.length)))?' open':''}" id="preview-${t.id}">
-        ${(t.equipIds&&t.equipIds.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool" style="color:var(--accent);"></i> Équipements</div><div class="pv-chips">${equipments.filter(e=>(t.equipIds||[]).includes(e.id)).map(e=>`<span class="pv-chip"><i class="ti ti-tool" style="font-size:10px;"></i> ${esc(e.type+(e.model?' '+e.model:''))}</span>`).join('')}</div></div>`:''}
-        ${(t.cardIds&&t.cardIds.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-cpu" style="color:var(--purple);"></i> Cartes élec.</div><div class="pv-chips">${cards.filter(c=>(t.cardIds||[]).includes(c.id)).map(c=>`<span class="pv-chip pv-chip-card"><i class="ti ti-cpu" style="font-size:10px;"></i> ${esc(c.name+(c.version?' '+c.version:''))}</span>`).join('')}</div></div>`:''}
-        ${(t.sample||(t.team&&t.team.length))?`<div class="pv-block"><div class="pv-label"><i class="ti ti-users" style="color:var(--text2);"></i> Équipe & sample</div><div class="pv-chips">${t.sample?`<span class="pv-chip" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);"><i class="ti ti-flask" style="font-size:10px;"></i> Sample ${esc(t.sample)}</span>`:''} ${(t.team||[]).map(m=>`<span class="pv-chip" style="background:rgba(107,110,232,.06);color:var(--text2);"><i class="ti ti-user" style="font-size:10px;"></i> ${esc(m)}</span>`).join('')}</div></div>`:''}
-        ${(t.deliverables&&t.deliverables.length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-checklist" style="color:var(--success);"></i> Livrables (${t.deliverables.length})</div><div class="pv-chips">${t.deliverables.map(d=>`<span class="pv-chip pv-chip-deliv"><i class="ti ti-circle-dot" style="font-size:10px;"></i> ${esc(d)}</span>`).join('')}</div></div>`:''}
-        ${(t.links&&t.links.filter(l=>tests.find(x=>x.id===l.testId)).length)?`<div class="pv-block"><div class="pv-label"><i class="ti ti-link" style="color:#d97706;"></i> Liens</div><div class="pv-chips">${t.links.filter(l=>tests.find(x=>x.id===l.testId)).map(l=>{const lk=tests.find(x=>x.id===l.testId);return lk?`<span class="pv-chip pv-chip-link">${l.type==='depends'?'↳ Dépend de':l.type==='blocks'?'↑ Bloque':'↔ Lié à'} ${esc(lk.name)}</span>`:''}).join('')}</div></div>`:''}
-        ${t.description?`<div class="pv-block pv-half"><div class="pv-label"><i class="ti ti-file-description"></i> Protocole / conditions</div><div class="pv-text">${esc(t.description)}</div></div>`:''}
-        ${t.material?`<div class="pv-block"><div class="pv-label"><i class="ti ti-notes"></i> Notes matériel</div><div class="pv-text">${esc(t.material)}</div></div>`:''}
+        ${(()=>{ const _pvChips=[];
+          if(t.equipIds&&t.equipIds.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-tool" style="color:var(--accent);"></i> Équipements</div><div class="pv-chips">${equipments.filter(e=>(t.equipIds||[]).includes(e.id)).map(e=>`<span class="pv-chip"><i class="ti ti-tool" style="font-size:10px;"></i> ${esc(e.type+(e.model?' '+e.model:''))}</span>`).join('')}</div></div>`);
+          if(t.cardIds&&t.cardIds.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-cpu" style="color:var(--purple);"></i> Cartes élec.</div><div class="pv-chips">${cards.filter(c=>(t.cardIds||[]).includes(c.id)).map(c=>`<span class="pv-chip pv-chip-card"><i class="ti ti-cpu" style="font-size:10px;"></i> ${esc(c.name+(c.version?' '+c.version:''))}</span>`).join('')}</div></div>`);
+          if(t.sample||(t.team&&t.team.length)) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-users" style="color:var(--text2);"></i> Équipe & sample</div><div class="pv-chips">${t.sample?`<span class="pv-chip" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.25);"><i class="ti ti-flask" style="font-size:10px;"></i> Sample ${esc(t.sample)}</span>`:''} ${(t.team||[]).map(m=>`<span class="pv-chip" style="background:rgba(107,110,232,.06);color:var(--text2);"><i class="ti ti-user" style="font-size:10px;"></i> ${esc(m)}</span>`).join('')}</div></div>`);
+          if(t.deliverables&&t.deliverables.length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-checklist" style="color:var(--success);"></i> Livrables (${t.deliverables.length})</div><div class="pv-chips">${t.deliverables.map(d=>`<span class="pv-chip pv-chip-deliv"><i class="ti ti-circle-dot" style="font-size:10px;"></i> ${esc(d)}</span>`).join('')}</div></div>`);
+          if(t.links&&t.links.filter(l=>tests.find(x=>x.id===l.testId)).length) _pvChips.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-link" style="color:#d97706;"></i> Liens</div><div class="pv-chips">${t.links.filter(l=>tests.find(x=>x.id===l.testId)).map(l=>{const lk=tests.find(x=>x.id===l.testId);return lk?`<span class="pv-chip pv-chip-link">${l.type==='depends'?'↳ Dépend de':l.type==='blocks'?'↑ Bloque':'↔ Lié à'} ${esc(lk.name)}</span>`:''}).join('')}</div></div>`);
+          const _pvText=[];
+          if(t.description) _pvText.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-file-description"></i> Protocole / conditions</div><div class="pv-text">${esc(t.description)}</div></div>`);
+          if(t.material) _pvText.push(`<div class="pv-block"><div class="pv-label"><i class="ti ti-notes"></i> Notes matériel</div><div class="pv-text">${esc(t.material)}</div></div>`);
+          return (_pvChips.length?`<div class="pv-chips-row">${_pvChips.join('')}</div>`:'')+(_pvText.length?`<div class="pv-text-row${_pvText.length===1?' pv-text-row-single':''}">${_pvText.join('')}</div>`:'');
+        })()}
       </div>
       <div class="card-body${isOpen?' open':''}" id="body-${t.id}">
         ${isEditing ? renderEditForm(t, edDelivs) : renderViewBody(t)}

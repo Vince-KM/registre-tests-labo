@@ -25354,7 +25354,9 @@ function saveEdit(id){
     material:t.material, description:t.description,
     team:(t.team||[]).join(', '),
     equips:(t.equipIds||[]).map(id=>{const e=equipments.find(x=>x.id===id);return e?equipLabel(e):'';}).filter(Boolean).join(', '),
-    cards:(t.cardIds||[]).map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', ')
+    cards:(t.cardIds||[]).map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', '),
+    certs:(t.certIds||[]).map(id=>{const c=certifications.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', '),
+    isRnD:t.isRnD?'Oui':''
   };
   t.name=name;
   t.type=document.getElementById('e-type-'+id)?.value||'';
@@ -25380,7 +25382,7 @@ function saveEdit(id){
   if(!t.history) t.history=[];
   if(!t.links) t.links=[];
   const editor = currentAccount ? (currentAccount.name||currentAccount.username) : 'Inconnu';
-  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',voltage:'Version tension',team:'Équipe',equips:'Équipements',cards:'Cartes électroniques',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
+  const LABELS = {name:'Nom',type:'Type',status:'Statut',dateStart:'Date début',dateEnd:'Date fin',days:'Durée',domain:'Domaine',owner:'Responsable',sample:'Sample',voltage:'Version tension',team:'Équipe',equips:'Équipements',cards:'Cartes électroniques',certs:'Certifications & normes',isRnD:'Interne R&D',failClass:'Classe échec',material:'Matériel',description:'Protocole'};
   const STATUS_LABELS = {pending:'En attente',progress:'En cours',done:'Validé',fail:'Échec'};
   const newValues = {
     name:t.name, type:t.type, status:t.status,
@@ -25389,7 +25391,9 @@ function saveEdit(id){
     material:t.material, description:t.description,
     team:t.team.join(', '),
     equips:t.equipIds.map(id=>{const e=equipments.find(x=>x.id===id);return e?equipLabel(e):'';}).filter(Boolean).join(', '),
-    cards:t.cardIds.map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', ')
+    cards:t.cardIds.map(id=>{const c=cards.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', '),
+    certs:t.certIds.map(id=>{const c=certifications.find(x=>x.id===id);return c?c.name:'';}).filter(Boolean).join(', '),
+    isRnD:t.isRnD?'Oui':''
   };
   const changes = [];
   Object.keys(snapshot).forEach(k=>{

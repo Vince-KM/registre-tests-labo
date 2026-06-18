@@ -24853,11 +24853,13 @@ function checkCalibAlerts(){
 /* ---- CONFLITS DE PLANNING ---- */
 function detectConflicts(t){
   if(!t.dateStart||!t.dateEnd) return [];
+  if(t.status==='done'||t.status==='fail') return []; // terminé = n'occupe plus l'équipement
   const eqA = (t.equipIds||[]);
   if(!eqA.length) return []; // pas d'équipements liés = pas de conflit possible
   const s1=new Date(t.dateStart); const e1=new Date(t.dateEnd);
   return tests.filter(other=>{
     if(other.id===t.id||!other.dateStart||!other.dateEnd) return false;
+    if(other.status==='done'||other.status==='fail') return false; // test terminé ignoré
     const s2=new Date(other.dateStart); const e2=new Date(other.dateEnd);
     if(s1>e2||s2>e1) return false; // pas de chevauchement de dates
     const eqB = (other.equipIds||[]);

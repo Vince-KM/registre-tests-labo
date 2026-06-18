@@ -25271,7 +25271,7 @@ function renderEditForm(t, delivs){
             <input type="text" id="e-team-inp-${t.id}" placeholder="Ajouter un membre…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember('e-${t.id}');}"/>
             <button class="btn sm" onclick="addTeamMember('e-${t.id}')"><i class="ti ti-plus"></i></button>
           </div>
-          <div class="team-list" id="e-team-list-${t.id}">${(t.team||[]).map((m,i)=>'<div class="team-member-row"><i class="ti ti-user" style="font-size:13px;color:var(--accent);flex-shrink:0;"></i><span>'+esc(m)+'</span><button onclick="removeTeamMember(&#39;e-${t.id}&#39;,'+i+')"><i class="ti ti-x"></i></button></div>').join('')}</div>
+          <div class="team-list" id="e-team-list-${t.id}"></div>
         </div>
         <div class="efield full">
           <label>Sample</label>
@@ -25360,7 +25360,10 @@ function startEdit(id){
   const body=document.getElementById('body-'+id);
   const card=document.getElementById('card-'+id);
   if(body){body.classList.add('open');card.classList.add('expanded','editing');}
-  setTimeout(()=>renderEquipChips('e-equip-chips-'+id),50);
+  setTimeout(()=>{
+    renderEquipChips('e-equip-chips-'+id);
+    renderTeamList('e-'+id, 'e-team-list-'+id);
+  },50);
 }
 
 function cancelEdit(id){

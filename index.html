@@ -23482,7 +23482,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .equip-modal{background:var(--bg2);border:1.5px solid var(--border2);border-radius:var(--radius-lg);width:min(900px,100%);box-shadow:var(--shadow);animation:slideUp .22s ease;}
 .equip-table{width:100%;border-collapse:collapse;font-size:13px;}
 .equip-table th{font-family:var(--title);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);background:var(--bg3);}
-.equip-table td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);}
+.equip-table td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text);white-space:nowrap;}
+.equip-table td:first-child{white-space:normal;min-width:90px;max-width:160px;word-break:break-word;}
 .equip-table tr:hover td{background:rgba(107,110,232,.03);}
 .equip-status-ok{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(5,150,105,.12);color:#059669;}
 .equip-status-soon{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(245,158,11,.12);color:#d97706;}
@@ -24477,20 +24478,20 @@ function renderCardsTable(){
         +'<td><input type="text" id="cd-edit-version" value="'+esc(c.version||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
         +'<td><input type="text" id="cd-edit-func" value="'+esc(c.func||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
         +'<td><input type="text" id="cd-edit-comment" value="'+esc(c.comment||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
-        +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+        +'<td style="white-space:nowrap;"><div style="display:flex;gap:4px;">'
           +'<button class="btn xs success" onclick="saveEditCard('+i+')" title="Enregistrer"><i class="ti ti-check"></i></button>'
           +'<button class="btn xs ghost" onclick="cancelEditCard()" title="Annuler"><i class="ti ti-x"></i></button>'
-        +'</td></tr>';
+        +'</div></td></tr>';
     }
     return '<tr>'
       +'<td style="font-weight:600;">'+esc(c.name||'')+'</td>'
       +'<td><code style="font-family:var(--mono);font-size:12px;background:var(--bg3);padding:1px 6px;border-radius:4px;">'+esc(c.version||'—')+'</code></td>'
       +'<td>'+esc(c.func||'—')+'</td>'
       +'<td style="color:var(--text3);font-size:12px;">'+esc(c.comment||'—')+'</td>'
-      +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+      +'<td style="white-space:nowrap;"><div style="display:flex;gap:4px;">'
         +'<button class="btn xs ghost" onclick="startEditCard('+i+')" title="Modifier"><i class="ti ti-pencil"></i></button>'
         +'<button class="btn xs danger-ghost" onclick="deleteCard('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button>'
-      +'</td></tr>';
+      +'</div></td></tr>';
   }).join('');
 }
 
@@ -24714,10 +24715,10 @@ function renderEquipTable(){
         +'<td><input type="date" id="eq-edit-next" value="'+esc(eq.nextCalib||'')+'" style="width:100%;padding:4px 6px;background:var(--bg2);border:1px solid var(--success);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
         +'<td><input type="number" id="eq-edit-reminder" value="'+esc(eq.reminder||30)+'" min="1" max="365" style="width:60px;padding:4px 6px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;"/></td>'
         +'<td>'+equipStatusBadge(eq)+'</td>'
-        +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+        +'<td style="white-space:nowrap;"><div style="display:flex;gap:4px;">'
           +'<button class="btn xs success" onclick="saveEditEquip('+i+')" title="Enregistrer"><i class="ti ti-check"></i></button>'
           +'<button class="btn xs ghost" onclick="cancelEditEquip()" title="Annuler"><i class="ti ti-x"></i></button>'
-        +'</td>'
+        +'</div></td>'
         +'</tr>';
     }
     return '<tr>'
@@ -24729,10 +24730,10 @@ function renderEquipTable(){
       +'<td>'+esc(eq.nextCalib||'—')+'</td>'
       +'<td style="text-align:center;">'+esc(eq.reminder||'30')+'</td>'
       +'<td>'+equipStatusBadge(eq)+'</td>'
-      +'<td style="white-space:nowrap;display:flex;gap:4px;">'
+      +'<td style="white-space:nowrap;"><div style="display:flex;gap:4px;">'
         +'<button class="btn xs ghost" onclick="startEditEquip('+i+')" title="Modifier"><i class="ti ti-pencil"></i></button>'
         +'<button class="btn xs danger-ghost" onclick="deleteEquip('+i+')" title="Supprimer"><i class="ti ti-trash"></i></button>'
-      +'</td>'
+      +'</div></td>'
       +'</tr>';
   }).join('');
 }

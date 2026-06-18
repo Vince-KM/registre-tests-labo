@@ -23159,7 +23159,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* STATS */
 .stats-wrap{background:var(--navy);padding:0 40px 28px;margin-bottom:0;}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:960px;margin:0 auto;}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;max-width:960px;margin:0 auto;}
 .stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:16px 18px;transition:border-color .2s,background .2s;}
 .stat:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18);}
 .stat-icon{font-size:22px;margin-bottom:10px;}
@@ -23169,6 +23169,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .stat.success .stat-value{color:#34d399;}
 .stat.warning .stat-value{color:#fbbf24;}
 .stat.info .stat-value{color:#60c8f5;}
+.stat.danger .stat-value{color:#f87171;}
 
 /* TOOLBAR */
 .toolbar-wrap{padding:20px 40px 0;max-width:960px;margin:0 auto;}
@@ -23540,7 +23541,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .team-add-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
 
 @media(max-width:640px){
-  .stats{grid-template-columns:1fr 1fr;}
+  .stats{grid-template-columns:repeat(3,1fr);}
   .day-panel{width:100%;border-left:none;}
   .equip-add-grid{grid-template-columns:1fr;}
   .equip-add-grid .full{grid-column:1;}
@@ -23641,8 +23642,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="stats">
     <div class="stat accent"><div class="stat-icon"><i class="ti ti-flask-2" style="color:var(--accent)"></i></div><div class="stat-value" id="s-total">0</div><div class="stat-label">Tests planifiés</div></div>
     <div class="stat warning"><div class="stat-icon"><i class="ti ti-calendar-week" style="color:var(--warning)"></i></div><div class="stat-value" id="s-days">0</div><div class="stat-label">Jours prévus</div></div>
-    <div class="stat success"><div class="stat-icon"><i class="ti ti-checklist" style="color:var(--success)"></i></div><div class="stat-value" id="s-deliv">0</div><div class="stat-label">Livrables</div></div>
-    <div class="stat info"><div class="stat-icon"><i class="ti ti-paperclip" style="color:var(--info)"></i></div><div class="stat-value" id="s-files">0</div><div class="stat-label">Pièces jointes</div></div>
+    <div class="stat danger"><div class="stat-icon"><i class="ti ti-alarm" style="color:#f87171"></i></div><div class="stat-value" id="s-late">0</div><div class="stat-label">En retard</div></div>
+    <div class="stat warning"><div class="stat-icon"><i class="ti ti-alert-triangle" style="color:var(--warning)"></i></div><div class="stat-value" id="s-conflicts">0</div><div class="stat-label">Conflits actifs</div></div>
+    <div class="stat accent"><div class="stat-icon"><i class="ti ti-calendar-off" style="color:var(--accent)"></i></div><div class="stat-value" id="s-nodate">0</div><div class="stat-label">Sans date</div></div>
+    <div class="stat success"><div class="stat-icon"><i class="ti ti-chart-pie" style="color:var(--success)"></i></div><div class="stat-value" id="s-rate">—</div><div class="stat-label">Taux de succès</div></div>
   </div>
   <!-- BARRE DE PROGRESSION -->
   <div class="progress-wrap">
@@ -24422,11 +24425,31 @@ async function refreshAllAttCounts(){
     await persist();
   }
 
-  // Met à jour le compteur global "Pièces jointes"
-  let globalFiles = 0;
-  tests.forEach(x => globalFiles += _attCount[x.id] !== undefined ? _attCount[x.id] : (x.attachments||[]).length);
-  const el = document.getElementById('s-files');
-  if(el) el.textContent = globalFiles;
+  // Re-render stats après polling
+  {
+    const _today = new Date(); _today.setHours(0,0,0,0);
+    let _late=0,_conf=0,_nodate=0,_done=0,_fail=0;
+    tests.forEach(t=>{
+      const _active=t.status!=='done'&&t.status!=='fail';
+      if(_active&&t.dateEnd&&new Date(t.dateEnd)<_today) _late++;
+      if(_active&&detectConflicts(t).length>0) _conf++;
+      if(_active&&!t.dateEnd) _nodate++;
+      if(t.status==='done') _done++;
+      if(t.status==='fail') _fail++;
+    });
+    const _total=_done+_fail;
+    const elLate=document.getElementById('s-late');
+    const elConf=document.getElementById('s-conflicts');
+    const elNd=document.getElementById('s-nodate');
+    const elRate=document.getElementById('s-rate');
+    const elTotal=document.getElementById('s-total'); if(elTotal) elTotal.textContent=tests.length;
+    let _days=0; tests.forEach(t=>{ _days+=parseFloat(t.days||0); });
+    const elDays=document.getElementById('s-days'); if(elDays) elDays.textContent=_days%1===0?_days:_days.toFixed(1);
+    if(elLate){ elLate.textContent=_late; const lc=elLate.closest('.stat'); if(lc) lc.className='stat '+(_late>0?'danger':'success'); }
+    if(elConf){ elConf.textContent=_conf; const cc=elConf.closest('.stat'); if(cc) cc.className='stat '+(_conf>0?'warning':'success'); }
+    if(elNd){ elNd.textContent=_nodate; const nc=elNd.closest('.stat'); if(nc) nc.className='stat '+(_nodate>0?'warning':'success'); }
+    if(elRate) elRate.textContent=_total>0?Math.round((_done/_total)*100)+' %':'—';
+  }
 }
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
@@ -24995,13 +25018,21 @@ function filtered(){
 }
 
 function render(){
-  let totalDays=0,totalDeliv=0,totalFiles=0;
+  // ── Calcul des 6 indicateurs ──
+  const today = new Date(); today.setHours(0,0,0,0);
+  let countLate=0, countConflicts=0, countNoDate=0, countDone=0, countFail=0, totalDays=0;
   tests.forEach(t=>{
-    totalDays+=parseFloat(t.days||0);
-    totalDeliv+=(t.deliverables||[]).length;
-    // Utilise le vrai compte SharePoint si disponible, sinon le JSON local
-    totalFiles += _attCount[t.id] !== undefined ? _attCount[t.id] : (t.attachments||[]).length;
+    const isActive = t.status!=='done' && t.status!=='fail';
+    if(isActive && t.dateEnd && new Date(t.dateEnd) < today) countLate++;
+    if(isActive && detectConflicts(t).length > 0) countConflicts++;
+    if(isActive && !t.dateEnd) countNoDate++;
+    if(t.status==='done') countDone++;
+    if(t.status==='fail') countFail++;
+    totalDays += parseFloat(t.days||0);
   });
+  const total = countDone + countFail;
+  const rate = total > 0 ? Math.round((countDone / total) * 100) : null;
+
   updateDayBadge();
   if(_dayPanelOpen) renderDayPanel();
   const domainSel=document.getElementById('filter-domain');
@@ -25011,10 +25042,19 @@ function render(){
     domainSel.innerHTML='<option value="">Tous les domaines</option>'+domains.map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>').join('');
     domainSel.value=cur;
   }
-  document.getElementById('s-total').textContent=tests.length;
-  document.getElementById('s-days').textContent=totalDays%1===0?totalDays:totalDays.toFixed(1);
-  document.getElementById('s-deliv').textContent=totalDeliv;
-  document.getElementById('s-files').textContent=totalFiles;
+  document.getElementById('s-total').textContent = tests.length;
+  document.getElementById('s-days').textContent = totalDays%1===0 ? totalDays : totalDays.toFixed(1);
+  document.getElementById('s-late').textContent = countLate;
+  document.getElementById('s-conflicts').textContent = countConflicts;
+  document.getElementById('s-nodate').textContent = countNoDate;
+  document.getElementById('s-rate').textContent = rate !== null ? rate + ' %' : '—';
+  // Coloration dynamique : vert si 0, rouge/orange si >0
+  const lateCard = document.getElementById('s-late')?.closest('.stat');
+  if(lateCard) lateCard.className = 'stat ' + (countLate > 0 ? 'danger' : 'success');
+  const conflCard = document.getElementById('s-conflicts')?.closest('.stat');
+  if(conflCard) conflCard.className = 'stat ' + (countConflicts > 0 ? 'warning' : 'success');
+  const nodateCard = document.getElementById('s-nodate')?.closest('.stat');
+  if(nodateCard) nodateCard.className = 'stat ' + (countNoDate > 0 ? 'warning' : 'success');
   updateProgress();
 
   const list=document.getElementById('test-list');
